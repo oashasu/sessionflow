@@ -1,0 +1,4 @@
+# SessionFlow - Claude Code会话管理工具
+#
+# 纯Python实现，无外部依赖
+# 使用标准库即可运行
