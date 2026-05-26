@@ -28,35 +28,73 @@ HTML_TEMPLATE = '''
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1a1a2e; color: #eee; }
-        .container { display: flex; height: 100vh; }
+        .container { display: flex; height: calc(100vh - 50px); }
 
         /* 左栏 - 项目列表 */
-        .projects { width: 200px; background: #16213e; border-right: 1px solid #0f3460; overflow-y: auto; }
+        .projects {
+            min-width: 200px;
+            width: 250px;
+            flex-shrink: 0;
+            background: #16213e;
+            border-right: 1px solid #0f3460;
+            overflow-y: auto;
+            position: relative;
+        }
         .projects h2 { padding: 15px; font-size: 14px; color: #94a3b8; border-bottom: 1px solid #0f3460; }
         .project-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #0f3460; }
         .project-item:hover { background: #0f3460; }
         .project-item.active { background: #e94560; }
 
+        /* 拖拽分隔条 */
+        .resizer {
+            width: 6px;
+            background: #0f3460;
+            cursor: col-resize;
+            position: relative;
+            z-index: 10;
+        }
+        .resizer:hover { background: #e94560; }
+        .resizer::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 1px;
+            width: 4px;
+            height: 30px;
+            background: #94a3b8;
+            border-radius: 2px;
+            transform: translateY(-50%);
+        }
+        .resizer:hover::after { background: #e94560; }
+
         /* 树状项目列表 */
-        .tree-item { padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #0f3460; display: flex; align-items: center; }
+        .tree-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #0f3460; display: flex; align-items: center; gap: 6px; }
         .tree-item:hover { background: #0f3460; }
         .tree-item.active { background: #e94560; }
-        .tree-expand { width: 20px; text-align: center; color: #94a3b8; cursor: pointer; }
+        .tree-expand { width: 18px; text-align: center; color: #94a3b8; cursor: pointer; flex-shrink: 0; }
         .tree-expand:hover { color: #e94560; }
-        .tree-icon { margin-right: 8px; }
-        .tree-count { color: #94a3b8; font-size: 12px; margin-left: 5px; }
-        .tree-children { margin-left: 20px; }
-        .tree-badge-local { color: #22c55e; font-size: 10px; }
-        .tree-badge-remote { color: #f59e0b; font-size: 10px; }
+        .tree-icon { flex-shrink: 0; }
+        .tree-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tree-count { color: #94a3b8; font-size: 12px; flex-shrink: 0; }
+        .tree-children { margin-left: 18px; }
+        .tree-badge-local { color: #22c55e; font-size: 10px; margin-left: 4px; }
+        .tree-badge-remote { color: #f59e0b; font-size: 10px; margin-left: 4px; }
 
         /* 批量操作区 */
-        .batch-actions { padding: 10px 15px; border-bottom: 1px solid #0f3460; background: #1a1a2e; }
-        .batch-btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; margin-right: 8px; font-size: 12px; }
+        .batch-actions { padding: 10px 15px; border-bottom: 1px solid #0f3460; background: #1a1a2e; display: flex; gap: 8px; }
+        .batch-btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
         .batch-btn-primary { background: #e94560; color: white; }
         .batch-btn-secondary { background: #0f3460; color: #eee; }
 
         /* 中栏 - 会话列表 */
-        .sessions { width: 280px; background: #1a1a2e; border-right: 1px solid #0f3460; overflow-y: auto; }
+        .sessions {
+            min-width: 250px;
+            width: 320px;
+            flex-shrink: 0;
+            background: #1a1a2e;
+            border-right: 1px solid #0f3460;
+            overflow-y: auto;
+        }
         .sessions h2 { padding: 15px; font-size: 14px; color: #94a3b8; border-bottom: 1px solid #0f3460; }
         .filter-bar { padding: 10px 15px; border-bottom: 1px solid #0f3460; display: flex; flex-wrap: wrap; gap: 6px; }
         .filter-tag { padding: 4px 10px; border-radius: 12px; cursor: pointer; font-size: 12px; color: #94a3b8; background: #0f3460; border: 1px solid transparent; }
@@ -196,7 +234,7 @@ HTML_TEMPLATE = '''
     <!-- 会话视图 -->
     <div class="container" id="session-view" style="display: none;">
         <!-- 左栏：项目列表（树状） -->
-        <div class="projects">
+        <div class="projects" id="panel-projects">
             <h2>📁 项目列表</h2>
             <div class="batch-actions" id="batch-actions" style="display: none;">
                 <button class="batch-btn batch-btn-primary" onclick="batchLinkRequirement()">🔗 批量关联需求</button>
@@ -204,9 +242,10 @@ HTML_TEMPLATE = '''
             </div>
             <div id="projects-list"></div>
         </div>
+        <div class="resizer" id="resizer-projects" data-panel="projects"></div>
 
         <!-- 中栏：会话列表 -->
-        <div class="sessions">
+        <div class="sessions" id="panel-sessions">
             <h2>💬 会话列表</h2>
             <div class="filter-bar">
                 <span class="filter-tag active" onclick="toggleFilter('status', 'all')" id="filter-status-all">全部</span>
@@ -227,6 +266,7 @@ HTML_TEMPLATE = '''
             </div>
             <div id="sessions-list"></div>
         </div>
+        <div class="resizer" id="resizer-sessions" data-panel="sessions"></div>
 
         <!-- 右栏：会话详情 -->
         <div class="detail">
@@ -311,6 +351,7 @@ HTML_TEMPLATE = '''
             renderSessions();
             renderRequirements();
             renderReqDetail();
+            initResizers(); // 初始化拖拽调整宽度
         }
 
         // 加载归档会话
@@ -1255,6 +1296,70 @@ HTML_TEMPLATE = '''
         function escapeHtml(text) {
             if (!text) return '';
             return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ============================================================================
+        // 可拖拽调整宽度功能
+        // ============================================================================
+
+        let isDragging = false;
+        let currentResizer = null;
+        let startX = 0;
+        let startWidth = 0;
+
+        // 初始化拖拽
+        function initResizers() {
+            document.querySelectorAll('.resizer').forEach(resizer => {
+                resizer.addEventListener('mousedown', startDrag);
+            });
+            document.addEventListener('mousemove', doDrag);
+            document.addEventListener('mouseup', endDrag);
+        }
+
+        function startDrag(e) {
+            isDragging = true;
+            currentResizer = e.target;
+            startX = e.clientX;
+
+            const panelId = currentResizer.dataset.panel;
+            const panel = document.getElementById('panel-' + panelId);
+            if (panel) {
+                startWidth = panel.offsetWidth;
+            }
+
+            // 防止选中文本
+            document.body.style.userSelect = 'none';
+            currentResizer.style.background = '#e94560';
+            e.preventDefault();
+        }
+
+        function doDrag(e) {
+            if (!isDragging || !currentResizer) return;
+
+            const panelId = currentResizer.dataset.panel;
+            const panel = document.getElementById('panel-' + panelId);
+            if (!panel) return;
+
+            const deltaX = e.clientX - startX;
+            const newWidth = startWidth + deltaX;
+
+            // 应用最小宽度限制
+            const minWidth = parseInt(panel.style.minWidth) || 150;
+            const maxWidth = 500; // 最大宽度限制
+
+            if (newWidth >= minWidth && newWidth <= maxWidth) {
+                panel.style.width = newWidth + 'px';
+            }
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            if (currentResizer) {
+                currentResizer.style.background = '#0f3460';
+            }
+            currentResizer = null;
+            document.body.style.userSelect = '';
         }
 
         // 定时刷新（30秒）
