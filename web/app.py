@@ -667,7 +667,7 @@ HTML_TEMPLATE = '''
 
                 // 叶子节点可点击选择
                 const clickHandler = node.isLeaf
-                    ? `onclick="${batchSelectMode ? 'batchSelectProject(\'' + fullPath + '\')' : 'selectProject(\'' + fullPath + '\')'}"`
+                    ? `onclick="${batchSelectMode ? `batchSelectProject('${fullPath}')` : `selectProject('${fullPath}')`}"`
                     : '';
 
                 html += `<div class="tree-item ${selectedProject === fullPath ? 'active' : ''}" ${clickHandler}>

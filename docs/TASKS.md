@@ -589,18 +589,21 @@ sessionflow req show REQ-001  # 统计 + 时间线
 ### 测试状态
 
 ```
-pytest 结果: 152 passed, 0 failed
-覆盖率: 39% (目标: 80%)
+pytest 结果: 265 passed, 0 failed, 4 skipped
+覆盖率: 80% (目标: 80%) ✅ 已达标
 ```
 
-**覆盖率缺失模块**:
-- sessionflow.py (15%) - 新增CLI命令未测试
-- core/storage.py (56%) - 需求/任务存储未测试
-
-**达到80%覆盖需补充测试**:
-1. CLI命令测试: cmd_req, cmd_link, cmd_host, cmd_view, cmd_tasks, cmd_stats, cmd_note, cmd_task, cmd_progress, cmd_bookmark
-2. 存储层测试: Requirement/Task/RemoteHost CRUD操作
-3. Web API测试: requirements/tasks/bookmarks/notes endpoints
+**覆盖率详情**:
+| 模块 | 覆盖率 | 缺失行 |
+|------|--------|--------|
+| core/__init__.py | 100% | - |
+| core/models.py | 100% | - |
+| core/parser.py | 93% | 17, 54, 126-128, 160-161 |
+| core/scanner.py | 90% | 38-39, 47-48, 156 |
+| core/storage.py | 96% | 116-117, 204-205, 279, 326, 333, 414, 427, 449 |
+| core/errors.py | 97% | 17 |
+| core/recovery.py | 79% | 33-34, 86, 116-118, 137, 142-148, 157-158, 201-202 |
+| sessionflow.py | 70% | 远程会话/部分edge case |
 
 ### Web服务
 
@@ -613,12 +616,18 @@ API验证: ✅ /api/sessions, /api/requirements, /api/tasks, /api/bookmarks
 
 功能完整度: 100%
 测试通过率: 100%
-覆盖率: 39% (未达标)
+覆盖率: 80% ✅ 已达标
+
+**验收通过**:
+- 所有Phase 0-2任务已完成
+- 远程会话管理、需求管理、Provider架构全部实现
+- Web UI增强功能（树状项目列表、批量关联、子Agent区分）已完成
+- 测试覆盖率达到80%目标
 
 建议:
 - 可交付使用，所有功能已实现并验证
-- 覆盖率提升为后续优化任务
 - 生产环境建议使用WSGI服务器(gunicorn)而非Flask开发服务器
+- 后续可拉分支做SQLite数据库方案
 ---
 
 ## 十三、Web UI增强功能（新增 2026-05-26）
