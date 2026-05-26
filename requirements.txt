@@ -1,4 +1,11 @@
 # SessionFlow - Claude Code会话管理工具
 #
-# 纯Python实现，无外部依赖
-# 使用标准库即可运行
+# 核心功能：纯Python实现，使用标准库
+# Web界面：需要Flask依赖
+
+# Web界面依赖（可选）
+flask>=2.0.0
+
+# 测试依赖（可选）
+pytest>=7.0.0
+pytest-cov>=4.0.0

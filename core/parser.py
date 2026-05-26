@@ -105,10 +105,15 @@ def get_jsonl_summary(jsonl_path: Path) -> Dict[str, Any]:
     topic = None
     first_user_msg = None
     tasks = []
+    cwd = None  # 从JSONL提取真实cwd
 
     for event in parse_jsonl_file(jsonl_path):
         stats["total_events"] += 1
         event_type = event.get("type", "")
+
+        # 提取cwd（从第一个包含cwd的事件）
+        if not cwd and "cwd" in event:
+            cwd = event.get("cwd")
 
         # 统计事件类型
         if event_type == "user":
@@ -165,4 +170,5 @@ def get_jsonl_summary(jsonl_path: Path) -> Dict[str, Any]:
         "stats": stats,
         "tasks": tasks,
         "has_ai_title": topic is not None,
+        "cwd": cwd,  # 真实cwd（从JSONL提取）
     }

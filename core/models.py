@@ -24,6 +24,9 @@ class SessionRecord:
     log_path: Optional[str] = None  # JSONL路径
     recovery_cmd: str = ""  # claude --resume <id>
     topic: Optional[str] = None  # 从JSONL提取的主题
+    tool_type: str = "claude"  # 工具类型: claude/codex
+    is_subagent: bool = False  # 是否为子agent会话
+    entrypoint: Optional[str] = None  # 会话入口: cli/sdk-cli
 
     @property
     def short_id(self) -> str:
