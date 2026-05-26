@@ -171,27 +171,32 @@ class ClaudeProvider(BaseSessionProvider):
 
         sessions = []
 
-        # 直接传递完整命令字符串，让远程shell处理$HOME展开
-        find_cmd = "find $HOME/.claude/projects/ -name '*.jsonl' -type f"
-        result = self._exec_ssh_cmd(host, [find_cmd], timeout=30)
+        # 使用stat获取mtime和路径，格式: mtime|path
+        find_cmd = "find $HOME/.claude/projects/ -name '*.jsonl' -type f -exec stat -f '%m|%N' {} \\;"
+        result = self._exec_ssh_cmd(host, [find_cmd], timeout=60)
 
         if result.returncode != 0:
             logger.warning(f"Remote scan failed: {result.stderr}")
             return sessions
 
         for line in result.stdout.strip().split("\n"):
-            if not line:
+            if not line or "|" not in line:
                 continue
 
             try:
+                # 解析格式: mtime|path
+                parts = line.strip().split("|")
+                if len(parts) < 2:
+                    continue
+
+                mtime = int(parts[0]) * 1000  # 转换为毫秒
+                jsonl_path = parts[1]
+
                 # 解析远程路径格式
                 # ~/.claude/projects/-Users-xxx-project/session-id.jsonl
-                jsonl_path = line.strip()
-                parts = jsonl_path.split("/")
-
-                # 找到session_id和目录编码
+                path_parts = jsonl_path.split("/")
                 session_id = Path(jsonl_path).stem
-                dir_encoded = parts[-2] if len(parts) >= 2 else ""
+                dir_encoded = path_parts[-2] if len(path_parts) >= 2 else ""
 
                 cwd = self._decode_project_dir(dir_encoded)
 
@@ -200,7 +205,7 @@ class ClaudeProvider(BaseSessionProvider):
                     cwd=cwd,
                     status="remote",
                     started_at=0,
-                    updated_at=0,
+                    updated_at=mtime,
                 )
 
                 record = SessionRecord(
