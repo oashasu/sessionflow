@@ -16,8 +16,7 @@ from core.errors import (
     NoActiveSessionError,
 )
 from core.storage import get_storage, Task, SessionNote, RemoteHostConfig, Requirement, RequirementSessionLink
-from providers.protocol import RemoteHost
-from providers.factory import SessionProviderFactory
+from providers import RemoteHost, get_factory
 
 # Rich库支持（可选）
 try:
@@ -106,7 +105,7 @@ def cmd_list(args):
     # 远程会话
     if args.remote or args.host_id:
         storage = get_storage()
-        factory = SessionProviderFactory()
+        factory = get_factory()
         provider = factory.create("claude")
 
         hosts = storage.load_remote_hosts()
@@ -177,7 +176,7 @@ def cmd_open(args):
     # 如果指定 --remote，包含远程会话
     if args.remote or args.host_id:
         storage = get_storage()
-        factory = SessionProviderFactory()
+        factory = get_factory()
         provider = factory.create("claude")
 
         hosts = storage.load_remote_hosts()
@@ -245,7 +244,7 @@ def cmd_open(args):
                 user=host_config.user,
                 ssh_alias=host_config.ssh_alias,
             )
-            factory = SessionProviderFactory()
+            factory = get_factory()
             provider = factory.create("claude")
 
             # 检查已有tmux
@@ -712,7 +711,7 @@ def cmd_host(args):
             enabled=host_config.enabled,
         )
 
-        factory = SessionProviderFactory()
+        factory = get_factory()
         provider = factory.create("claude")
 
         sessions = provider.scan_sessions(host, force_refresh=True)

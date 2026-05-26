@@ -171,11 +171,9 @@ class ClaudeProvider(BaseSessionProvider):
 
         sessions = []
 
-        # 安全构建命令
-        session_dir = self._safe_quote(self.tool_info.session_dir)
-        find_cmd = f"find {session_dir} -name '*.jsonl' -type f"
-
-        result = self._exec_ssh_cmd(host, ["sh", "-c", find_cmd], timeout=30)
+        # 直接传递完整命令字符串，让远程shell处理$HOME展开
+        find_cmd = "find $HOME/.claude/projects/ -name '*.jsonl' -type f"
+        result = self._exec_ssh_cmd(host, [find_cmd], timeout=30)
 
         if result.returncode != 0:
             logger.warning(f"Remote scan failed: {result.stderr}")
