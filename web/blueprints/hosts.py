@@ -1,11 +1,13 @@
 """远程主机管理API"""
-from flask import jsonify, request
+from flask import request
 
 from . import hosts_bp
 from providers import get_factory
 from providers.protocol import RemoteHost
 from core import get_storage, RemoteHostConfig
 from core.sqlite_storage import SQLiteStorage
+from web.api import ok, ok_list, fail
+from core.errors import NotFoundError, ValidationError
 
 sqlite_storage = SQLiteStorage()
 
@@ -15,7 +17,7 @@ def api_hosts():
     """获取所有远程主机"""
     storage = get_storage()
     hosts = storage.load_remote_hosts()
-    return jsonify([{
+    return ok_list([{
         'id': h.id,
         'name': h.name,
         'hostname': h.hostname,
@@ -40,7 +42,7 @@ def api_hosts_add():
     )
     storage.add_remote_host(host)
 
-    return jsonify({'success': True, 'host_id': host.id})
+    return ok(host_id=host.id)
 
 
 @hosts_bp.route('/api/hosts/remove/<host_id>', methods=['POST'])
@@ -48,7 +50,7 @@ def api_hosts_remove(host_id):
     """移除远程主机"""
     storage = get_storage()
     success = storage.remove_remote_host(host_id)
-    return jsonify({'success': success})
+    return ok(success=success)
 
 
 @hosts_bp.route('/api/hosts/scan/<host_id>')
@@ -58,7 +60,7 @@ def api_hosts_scan(host_id):
     host_config = storage.get_remote_host(host_id)
 
     if not host_config:
-        return jsonify({'success': False, 'error': 'Host not found'})
+        raise NotFoundError("主机", host_id)
 
     host = RemoteHost(
         id=host_config.id,
@@ -75,11 +77,10 @@ def api_hosts_scan(host_id):
     sessions = provider.scan_sessions(host, force_refresh=True)
     tmux_mappings = provider.scan_tmux_mappings(host)
 
-    return jsonify({
-        'success': True,
-        'host_name': host_config.name,
-        'sessions_count': len(sessions),
-        'sessions': [{
+    return ok(
+        host_name=host_config.name,
+        sessions_count=len(sessions),
+        sessions=[{
             'meta': {
                 'session_id': s.meta.session_id,
                 'cwd': s.meta.cwd,
@@ -89,7 +90,7 @@ def api_hosts_scan(host_id):
             'topic': s.topic,
             'tmux_info': tmux_mappings.get(s.meta.session_id),
         } for s in sessions]
-    })
+    )
 
 
 @hosts_bp.route('/api/sessions/remote')
@@ -139,7 +140,7 @@ def api_sessions_remote():
                 'tmux_info': tmux_info,
             })
 
-    return jsonify(all_sessions)
+    return ok_list(all_sessions)
 
 
 @hosts_bp.route('/api/sessions/remote/<host_id>')
@@ -149,10 +150,10 @@ def api_sessions_remote_by_host(host_id):
     host_config = storage.get_remote_host(host_id)
 
     if not host_config:
-        return jsonify([])
+        return ok_list([])
 
     if not host_config.enabled:
-        return jsonify([])
+        return ok_list([])
 
     force_refresh = request.args.get('refresh', 'false') == 'true'
 
@@ -179,7 +180,7 @@ def api_sessions_remote_by_host(host_id):
                 'host_id': host_id,
                 'tmux_info': None,
             })
-        return jsonify(result)
+        return ok_list(result)
 
     host = RemoteHost(
         id=host_config.id,
@@ -219,12 +220,12 @@ def api_sessions_remote_by_host(host_id):
                     'host_id': host_id,
                     'tmux_info': None,
                 })
-        except Exception as e:
+        except Exception:
             continue
 
     sqlite_storage.save_sessions(all_sessions, host_id=host_id)
 
-    return jsonify(result)
+    return ok_list(result)
 
 
 @hosts_bp.route('/api/sessions/remote/<host_id>/refresh', methods=['POST'])
@@ -234,11 +235,11 @@ def api_sessions_remote_refresh(host_id):
     host_config = storage.get_remote_host(host_id)
 
     if not host_config:
-        return jsonify({'error': 'Host not found'}), 404
+        raise NotFoundError("主机", host_id)
 
     if not host_config.enabled:
-        return jsonify({'error': 'Host disabled'}), 400
+        raise ValidationError("主机已禁用")
 
     sqlite_storage.clear_sessions_cache(host_id=host_id)
 
-    return jsonify({'success': True, 'message': 'Cache cleared'})
+    return ok(message='缓存已清除')

@@ -1,5 +1,5 @@
 """统计和工具API"""
-from flask import jsonify, request
+from flask import request
 from pathlib import Path
 
 from . import stats_bp
@@ -8,6 +8,7 @@ from core.parser import get_jsonl_summary
 from core import get_cached_stats, update_stats_cache
 from core.sqlite_storage import SQLiteStorage
 from providers import get_factory
+from web.api import ok, ok_list
 
 sqlite_storage = SQLiteStorage()
 
@@ -17,25 +18,25 @@ def api_stats(session_id):
     """获取会话统计（优先使用缓存）"""
     cached = get_cached_stats(session_id)
     if cached:
-        return jsonify({'stats': cached, 'cached': True})
+        return ok(stats=cached, cached=True)
 
     sessions = scan_sessions()
     session = next((s for s in sessions if s.meta.session_id == session_id), None)
 
     if not session or not session.log_path:
-        return jsonify({'stats': None})
+        return ok(stats=None)
 
     if hasattr(session, 'stats') and session.stats:
         update_stats_cache(session_id, session.stats)
-        return jsonify({'stats': session.stats, 'cached': False})
+        return ok(stats=session.stats, cached=False)
 
     try:
         summary = get_jsonl_summary(Path(session.log_path))
         stats = summary.get('stats', {})
         update_stats_cache(session_id, stats)
-        return jsonify({'stats': stats, 'cached': False})
+        return ok(stats=stats, cached=False)
     except Exception as e:
-        return jsonify({'stats': None, 'error': str(e)})
+        return ok(stats=None, error=str(e))
 
 
 @stats_bp.route('/api/history/<session_id>')
@@ -62,7 +63,7 @@ def api_history(session_id):
             tool_type = getattr(session, 'tool_type', 'claude')
 
     if not log_path:
-        return jsonify([])
+        return ok_list([])
 
     try:
         events = list(parse_jsonl_file(Path(log_path)))
@@ -135,9 +136,9 @@ def api_history(session_id):
                 tool_name = event.get('name', 'unknown')
                 history.append({'type': 'tool', 'content': f'调用工具: {tool_name}'})
 
-        return jsonify(history)
-    except Exception as e:
-        return jsonify([])
+        return ok_list(history)
+    except Exception:
+        return ok_list([])
 
 
 @stats_bp.route('/api/tools')
@@ -160,4 +161,4 @@ def api_tools():
         except ValueError:
             continue
 
-    return jsonify(tools_info)
+    return ok_list(tools_info)

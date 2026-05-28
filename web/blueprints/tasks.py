@@ -1,9 +1,10 @@
 """任务管理API"""
-from flask import jsonify, request
+from flask import request
 from datetime import datetime
 
 from . import tasks_bp
 from core import get_storage, Task
+from web.api import ok, ok_list, fail
 
 
 @tasks_bp.route('/api/tasks')
@@ -11,7 +12,7 @@ def api_tasks():
     """获取所有任务"""
     storage = get_storage()
     tasks = storage.load_tasks()
-    return jsonify([{
+    return ok_list([{
         'id': t.id,
         'title': t.title,
         'status': t.status,
@@ -36,7 +37,7 @@ def api_tasks_add():
     tasks.append(task)
     storage.save_tasks(tasks)
 
-    return jsonify({'success': True, 'task_id': task.id})
+    return ok(task_id=task.id)
 
 
 @tasks_bp.route('/api/tasks/toggle/<task_id>', methods=['POST'])
@@ -53,7 +54,7 @@ def api_tasks_toggle(task_id):
             break
 
     storage.save_tasks(tasks)
-    return jsonify({'success': True})
+    return ok()
 
 
 @tasks_bp.route('/api/tasks/delete/<task_id>', methods=['POST'])
@@ -63,4 +64,4 @@ def api_tasks_delete(task_id):
     tasks = storage.load_tasks()
     tasks = [t for t in tasks if not t.id.startswith(task_id)]
     storage.save_tasks(tasks)
-    return jsonify({'success': True})
+    return ok()

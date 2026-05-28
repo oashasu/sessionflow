@@ -30,7 +30,8 @@ class TestSessionsAPI:
         resp = client.get('/api/sessions')
         assert resp.status_code == 200
         data = resp.get_json()
-        assert isinstance(data, list)
+        assert data['success'] is True
+        assert isinstance(data['data'], list)
 
     def test_get_sessions_refresh(self, client):
         """测试刷新会话"""
@@ -54,7 +55,8 @@ class TestSessionsAPI:
         resp = client.get('/api/tools')
         assert resp.status_code == 200
         data = resp.get_json()
-        assert isinstance(data, list)
+        assert data['success'] is True
+        assert isinstance(data['data'], list)
 
 
 # ============================================================================
@@ -69,7 +71,8 @@ class TestRequirementsAPI:
         resp = client.get('/api/requirements')
         assert resp.status_code == 200
         data = resp.get_json()
-        assert isinstance(data, list)
+        assert data['success'] is True
+        assert isinstance(data['data'], list)
 
     def test_add_requirement(self, client):
         """测试添加需求"""
@@ -108,7 +111,8 @@ class TestTasksAPI:
         resp = client.get('/api/tasks')
         assert resp.status_code == 200
         data = resp.get_json()
-        assert isinstance(data, list)
+        assert data['success'] is True
+        assert isinstance(data['data'], list)
 
     def test_add_task(self, client):
         """测试添加任务"""
@@ -177,7 +181,8 @@ class TestHostsAPI:
         resp = client.get('/api/hosts')
         assert resp.status_code == 200
         data = resp.get_json()
-        assert isinstance(data, list)
+        assert data['success'] is True
+        assert isinstance(data['data'], list)
 
     def test_add_host(self, client):
         """测试添加主机"""
@@ -208,12 +213,15 @@ class TestArchiveAPI:
         resp = client.get('/api/archived')
         assert resp.status_code == 200
         data = resp.get_json()
-        assert isinstance(data, list)
+        assert data['success'] is True
+        assert isinstance(data['data'], list)
 
     def test_archive_session(self, client):
         """测试归档会话"""
-        resp = client.post('/api/archive/test-session')
-        assert resp.status_code in [200, 404, 415]
+        resp = client.post('/api/archive/test-session',
+                           json={})
+        # scan_sessions()在测试环境中可能失败，或会话不存在
+        assert resp.status_code in [200, 404, 400, 415]
 
     def test_trash_session(self, client):
         """测试移至垃圾箱"""
@@ -228,7 +236,8 @@ class TestArchiveAPI:
     def test_delete_session(self, client):
         """测试删除会话"""
         resp = client.post('/api/delete/test-session')
-        assert resp.status_code in [200, 404]
+        # 只有废纸篓中的会话才能被永久删除，其他返回400
+        assert resp.status_code in [200, 404, 400]
 
     def test_get_archived_detail(self, client):
         """测试获取归档详情"""

@@ -1,9 +1,10 @@
 """备注管理API"""
-from flask import jsonify, request
+from flask import request
 from datetime import datetime
 
 from . import notes_bp
 from core import get_storage, SessionNote
+from web.api import ok
 
 
 @notes_bp.route('/api/notes')
@@ -11,7 +12,7 @@ def api_notes():
     """获取所有备注"""
     storage = get_storage()
     notes = storage.load_notes()
-    return jsonify({sid: {'text': n.text, 'tags': n.tags} for sid, n in notes.items()})
+    return ok(data={sid: {'text': n.text, 'tags': n.tags} for sid, n in notes.items()})
 
 
 @notes_bp.route('/api/notes/save', methods=['POST'])
@@ -31,4 +32,4 @@ def api_notes_save():
         notes[session_id] = SessionNote.create(session_id, text)
 
     storage.save_notes(notes)
-    return jsonify({'success': True})
+    return ok()

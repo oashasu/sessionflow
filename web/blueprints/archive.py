@@ -1,9 +1,11 @@
 """归档管理API"""
-from flask import jsonify, request
+from flask import request
 
 from . import archive_bp
 from core.scanner import scan_sessions
 from core import get_storage, ArchivedSession
+from web.api import ok, ok_list, fail
+from core.errors import NotFoundError, ValidationError
 
 
 @archive_bp.route('/api/archive/<session_id>', methods=['POST'])
@@ -31,11 +33,10 @@ def api_archive_session(session_id):
         topic=topic
     )
 
-    return jsonify({
-        'success': True,
-        'archived_at': archived.archived_at,
-        'archive_type': archived.archive_type
-    })
+    return ok(
+        archived_at=archived.archived_at,
+        archive_type=archived.archive_type
+    )
 
 
 @archive_bp.route('/api/trash/<session_id>', methods=['POST'])
@@ -57,11 +58,10 @@ def api_trash_session(session_id):
         topic=topic
     )
 
-    return jsonify({
-        'success': True,
-        'archived_at': archived.archived_at,
-        'archive_type': archived.archive_type
-    })
+    return ok(
+        archived_at=archived.archived_at,
+        archive_type=archived.archive_type
+    )
 
 
 @archive_bp.route('/api/restore/<session_id>', methods=['POST'])
@@ -69,7 +69,7 @@ def api_restore_session(session_id):
     """恢复会话（从归档/废纸篓移出）"""
     storage = get_storage()
     success = storage.restore_session(session_id)
-    return jsonify({'success': success})
+    return ok(success=success)
 
 
 @archive_bp.route('/api/delete/<session_id>', methods=['POST'])
@@ -79,9 +79,9 @@ def api_delete_session(session_id):
     # 检查是否在废纸篓中
     archived = storage.get_archived_session(session_id)
     if not archived or archived.archive_type != 'trash':
-        return jsonify({'success': False, 'error': 'Only trash sessions can be permanently deleted'})
+        raise ValidationError("只有废纸篓中的会话才能被永久删除")
     success = storage.delete_trash_session(session_id)
-    return jsonify({'success': success})
+    return ok(success=success)
 
 
 @archive_bp.route('/api/archived')
@@ -95,7 +95,7 @@ def api_archived_sessions():
     else:
         archived = storage.load_archived_sessions()
 
-    return jsonify([{
+    return ok_list([{
         'session_id': s.session_id,
         'archive_type': s.archive_type,
         'archived_at': s.archived_at,
@@ -113,14 +113,14 @@ def api_archived_detail(session_id):
     archived = storage.get_archived_session(session_id)
 
     if not archived:
-        return jsonify({'success': False, 'error': 'Not archived'})
+        raise NotFoundError("归档会话", session_id)
 
-    return jsonify({
-        'session_id': archived.session_id,
-        'archive_type': archived.archive_type,
-        'archived_at': archived.archived_at,
-        'insight': archived.insight,
-        'project_name': archived.project_name,
-        'topic': archived.topic,
-        'reason': archived.reason,
-    })
+    return ok(
+        session_id=archived.session_id,
+        archive_type=archived.archive_type,
+        archived_at=archived.archived_at,
+        insight=archived.insight,
+        project_name=archived.project_name,
+        topic=archived.topic,
+        reason=archived.reason,
+    )

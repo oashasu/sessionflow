@@ -1,0 +1,61 @@
+<!-- 会话视图 -->
+<div class="container" id="session-view" style="display: none;">
+    <!-- 左栏：项目列表（树状） -->
+    <div class="projects" id="panel-projects">
+        <h2>📁 项目列表</h2>
+        <div class="batch-actions" id="batch-actions" style="display: none;">
+            <button class="batch-btn batch-btn-primary" onclick="batchLinkRequirement()">🔗 批量关联需求</button>
+            <button class="batch-btn batch-btn-secondary" onclick="cancelBatchSelect()">取消</button>
+        </div>
+        <div id="projects-list"></div>
+    </div>
+    <div class="resizer" id="resizer-projects" data-panel="projects"></div>
+
+    <!-- 中栏：会话列表 -->
+    <div class="sessions" id="panel-sessions">
+        <h2>💬 会话列表</h2>
+        <!-- Host Tabs: 本地/远程切换 -->
+        <div class="host-tabs" id="host-tabs-container" style="padding: 8px 15px; border-bottom: 1px solid #0f3460; display: flex; gap: 10px;">
+            <div class="host-tab active" id="host-tab-local" onclick="switchHostTab('local')">💻 本地</div>
+            <!-- 远程主机Tab将由JavaScript动态添加 -->
+        </div>
+        <div class="filter-bar">
+            <span class="filter-tag active" onclick="toggleFilter('status', 'all')" id="filter-status-all">全部</span>
+            <span class="filter-tag" onclick="toggleFilter('status', 'busy')" id="filter-status-busy">🔵 进行中</span>
+            <span class="filter-tag" onclick="toggleFilter('status', 'idle')" id="filter-status-idle">⚪ 闲置</span>
+            <span class="filter-tag" onclick="toggleFilter('status', 'closed')" id="filter-status-closed">📁 已关闭</span>
+            <span class="filter-tag" onclick="toggleFilter('status', 'archived')" id="filter-status-archived">📦 已归档</span>
+            <span class="filter-tag" onclick="toggleFilter('status', 'trash')" id="filter-status-trash">🗑️ 废纸篓</span>
+            <span class="filter-tag active" onclick="toggleFilter('tool', 'all')" id="filter-tool-all">所有工具</span>
+            <span class="filter-tag" onclick="toggleFilter('tool', 'claude')" id="filter-tool-claude">🤖 Claude</span>
+            <span class="filter-tag" onclick="toggleFilter('tool', 'codex')" id="filter-tool-codex">📝 Codex</span>
+            <span class="filter-tag active" onclick="toggleFilter('subagent', 'all')" id="filter-subagent-all">所有会话</span>
+            <span class="filter-tag" onclick="toggleFilter('subagent', 'main')" id="filter-subagent-main">主会话</span>
+            <span class="filter-tag" onclick="toggleFilter('subagent', 'sub')" id="filter-subagent-sub">子agent</span>
+        </div>
+        <div id="sessions-list"></div>
+        <div class="scroll-loading" id="scroll-loading">🔄 加载更多...</div>
+        <div class="scroll-end" id="scroll-end"></div>
+    </div>
+    <div class="resizer" id="resizer-sessions" data-panel="sessions"></div>
+
+    <!-- 右栏：会话详情 -->
+    <div class="detail">
+        <div class="detail-header">
+            <h2>📋 会话详情</h2>
+        </div>
+
+        <!-- 标签页 -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('overview')">概览</div>
+            <div class="tab" onclick="switchTab('history')">对话历史</div>
+            <div class="tab" onclick="switchTab('tasks')">任务</div>
+            <div class="tab" onclick="switchTab('notes')">备注</div>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="content-area" id="detail-content">
+            <p style="color: #94a3b8;">选择一个会话查看详情</p>
+        </div>
+    </div>
+</div>

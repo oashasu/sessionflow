@@ -89,3 +89,32 @@ class SecurityError(SessionFlowError):
             message=message,
             suggestion="请确保路径在允许范围内",
         )
+
+
+# ============================================================================
+# Web API 层错误类
+# ============================================================================
+
+
+class NotFoundError(SessionFlowError):
+    """资源未找到 (HTTP 404)"""
+
+    def __init__(self, resource: str, resource_id: str):
+        super().__init__(
+            message=f"{resource} '{resource_id}' 未找到",
+            suggestion=f"请确认{resource}ID是否正确",
+        )
+
+
+class ValidationError(SessionFlowError):
+    """请求参数校验失败 (HTTP 400)"""
+
+    def __init__(self, message: str):
+        super().__init__(message=message)
+
+
+class ConflictError(SessionFlowError):
+    """资源冲突 (HTTP 409)"""
+
+    def __init__(self, message: str):
+        super().__init__(message=message)

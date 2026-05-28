@@ -1,9 +1,10 @@
 """需求管理API"""
-from flask import jsonify, request
-from datetime import datetime
+from flask import request
 
 from . import requirements_bp
 from services import RequirementService, MatchingService, AnalysisService
+from web.api import ok, ok_list, fail
+from core.errors import NotFoundError, ValidationError
 
 
 @requirements_bp.route('/api/requirements')
@@ -11,7 +12,7 @@ def api_requirements():
     """获取所有需求"""
     req_service = RequirementService()
     requirements = req_service.list(category=request.args.get('category', 'all'))
-    return jsonify([{
+    return ok_list([{
         'id': r.id,
         'title': r.title,
         'description': r.description,
@@ -32,19 +33,16 @@ def api_requirements_add():
     data = request.get_json()
     req_service = RequirementService()
 
-    try:
-        req = req_service.create(
-            title=data.get('title', 'Untitled'),
-            category=data.get('category', 'feature'),
-            priority=data.get('priority', 'p2'),
-            description=data.get('description', ''),
-            tags=data.get('tags', '').split(',') if isinstance(data.get('tags'), str) else data.get('tags', []),
-            work_dirs=data.get('work_dirs', '').split(',') if isinstance(data.get('work_dirs'), str) else data.get('work_dirs', []),
-            session_ids=data.get('session_ids', []),
-        )
-        return jsonify({'success': True, 'req_id': req.id})
-    except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)})
+    req = req_service.create(
+        title=data.get('title', 'Untitled'),
+        category=data.get('category', 'feature'),
+        priority=data.get('priority', 'p2'),
+        description=data.get('description', ''),
+        tags=data.get('tags', '').split(',') if isinstance(data.get('tags'), str) else data.get('tags', []),
+        work_dirs=data.get('work_dirs', '').split(',') if isinstance(data.get('work_dirs'), str) else data.get('work_dirs', []),
+        session_ids=data.get('session_ids', []),
+    )
+    return ok(req_id=req.id)
 
 
 @requirements_bp.route('/api/requirements/<req_id>')
@@ -53,7 +51,7 @@ def api_requirement_detail(req_id):
     req_service = RequirementService()
     req = req_service.get_detail(req_id)
     if not req:
-        return jsonify({'success': False, 'error': 'Requirement not found'})
+        raise NotFoundError("需求", req_id)
 
     from core import get_storage
     storage = get_storage()
@@ -87,20 +85,20 @@ def api_requirement_detail(req_id):
                 'linked_at': link.linked_at,
             })
 
-    return jsonify({
-        'id': req.id,
-        'title': req.title,
-        'description': req.description,
-        'category': req.category,
-        'status': req.status,
-        'priority': req.priority,
-        'tags': req.tags,
-        'work_dirs': req.work_dirs,
-        'created_at': req.created_at,
-        'updated_at': req.updated_at,
-        'completed_at': req.completed_at,
-        'linked_sessions': linked_sessions,
-    })
+    return ok(
+        id=req.id,
+        title=req.title,
+        description=req.description,
+        category=req.category,
+        status=req.status,
+        priority=req.priority,
+        tags=req.tags,
+        work_dirs=req.work_dirs,
+        created_at=req.created_at,
+        updated_at=req.updated_at,
+        completed_at=req.completed_at,
+        linked_sessions=linked_sessions,
+    )
 
 
 @requirements_bp.route('/api/requirements/edit/<req_id>', methods=['POST'])
@@ -122,7 +120,7 @@ def api_requirements_edit(req_id):
         kwargs['title'] = data.get('title')
 
     success = req_service.update(req_id, **kwargs)
-    return jsonify({'success': success})
+    return ok(success=success)
 
 
 @requirements_bp.route('/api/requirements/done/<req_id>', methods=['POST'])
@@ -130,7 +128,7 @@ def api_requirements_done(req_id):
     """完成需求"""
     req_service = RequirementService()
     success = req_service.complete(req_id)
-    return jsonify({'success': success})
+    return ok(success=success)
 
 
 @requirements_bp.route('/api/requirements/delete/<req_id>', methods=['POST'])
@@ -138,7 +136,7 @@ def api_requirements_delete(req_id):
     """删除需求"""
     req_service = RequirementService()
     success = req_service.delete(req_id)
-    return jsonify({'success': success})
+    return ok(success=success)
 
 
 @requirements_bp.route('/api/requirements/link/<req_id>/<session_id>', methods=['POST'])
@@ -153,7 +151,7 @@ def api_requirements_link(req_id, session_id):
         role=data.get('role', 'secondary'),
         notes=data.get('notes', ''),
     )
-    return jsonify({'success': True})
+    return ok()
 
 
 @requirements_bp.route('/api/requirements/unlink/<session_id>', methods=['POST'])
@@ -161,7 +159,7 @@ def api_requirements_unlink(session_id):
     """解除session关联"""
     req_service = RequirementService()
     success = req_service.unlink_session(session_id)
-    return jsonify({'success': success})
+    return ok(success=success)
 
 
 @requirements_bp.route('/api/requirements/sessions/<req_id>')
@@ -169,7 +167,7 @@ def api_requirements_sessions(req_id):
     """获取需求关联的session列表"""
     req_service = RequirementService()
     links = req_service.get_linked_sessions(req_id)
-    return jsonify([{
+    return ok_list([{
         'session_id': l.session_id,
         'role': l.role,
         'notes': l.notes,
@@ -182,7 +180,7 @@ def api_requirements_suggest(req_id):
     """智能推荐匹配的会话"""
     matching_service = MatchingService()
     suggestions = matching_service.suggest_sessions(req_id)
-    return jsonify(suggestions)
+    return ok_list(suggestions)
 
 
 @requirements_bp.route('/api/sessions/analyze')
@@ -190,7 +188,7 @@ def api_sessions_analyze():
     """全量分析会话，建议需求"""
     analysis_service = AnalysisService()
     result = analysis_service.analyze_all()
-    return jsonify(result)
+    return ok(data=result)
 
 
 @requirements_bp.route('/api/open/<session_id>', methods=['POST'])
@@ -208,7 +206,7 @@ def api_open_session(session_id):
         storage = get_storage()
         host_config = storage.get_remote_host(host_id)
         if not host_config:
-            return jsonify({'success': False, 'error': 'Remote host not found'})
+            raise NotFoundError("远程主机", host_id)
 
         host = RemoteHost(
             id=host_config.id,
@@ -226,19 +224,15 @@ def api_open_session(session_id):
     session = next((s for s in sessions if s.meta.session_id == session_id), None)
 
     if not session:
-        return jsonify({'success': False, 'error': f'Session {session_id[:8]} not found on {"remote host" if host_id else "local"}'})
+        raise NotFoundError("会话", session_id[:8])
 
     factory = get_factory()
-    try:
-        provider = factory.create(tool_type)
-        recovery_cmd = provider.generate_recovery_cmd(session.meta.session_id, session.meta.cwd)
-        print(f"[DEBUG] tool_type={tool_type}, host_id={host_id}, recovery_cmd={recovery_cmd}")
+    provider = factory.create(tool_type)
+    recovery_cmd = provider.generate_recovery_cmd(session.meta.session_id, session.meta.cwd)
 
-        if host_id:
-            success = provider.recover_remote_session(session, host)
-        else:
-            success = provider.recover_local_session(session)
+    if host_id:
+        success = provider.recover_remote_session(session, host)
+    else:
+        success = provider.recover_local_session(session)
 
-        return jsonify({'success': success})
-    except ValueError:
-        return jsonify({'success': False, 'error': f'Provider not found: {tool_type}'})
+    return ok(success=success)
