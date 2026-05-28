@@ -1,7 +1,9 @@
 """数据结构定义"""
 
-from dataclasses import dataclass
-from typing import Optional
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Optional, List
 
 
 @dataclass
@@ -43,6 +45,162 @@ class SessionRecord:
     def duration_seconds(self) -> float:
         """计算会话持续时间（秒）"""
         return (self.meta.updated_at - self.meta.started_at) / 1000
+
+
+@dataclass
+class RemoteHostConfig:
+    """远程主机配置"""
+    id: str
+    name: str
+    hostname: str
+    user: str
+    ssh_alias: Optional[str] = None
+    claude_dir: str = "~/.claude/projects/"
+    tmux_prefix: str = "claude-"
+    stats_script: str = "~/sandbox/scripts/sessionflow_stats.py"
+    enabled: bool = True
+    last_scan_at: int = 0
+
+    @classmethod
+    def create(cls, name: str, hostname: str, user: str, **kwargs) -> "RemoteHostConfig":
+        """创建新主机配置"""
+        host_id = f"host-{uuid.uuid4().hex[:8]}"
+        return cls(id=host_id, name=name, hostname=hostname, user=user, **kwargs)
+
+
+@dataclass
+class Task:
+    """任务数据模型"""
+    id: str
+    title: str
+    description: str = ""
+    status: str = "todo"  # todo, in_progress, done
+    priority: str = "medium"  # high, medium, low
+    linked_session_id: Optional[str] = None
+    requirement_id: Optional[str] = None
+    progress: int = 0  # 0-100
+    created_at: int = 0
+    updated_at: int = 0
+
+    @classmethod
+    def create(cls, title: str, **kwargs) -> "Task":
+        """创建新任务"""
+        now = int(datetime.now().timestamp() * 1000)
+        return cls(
+            id=str(uuid.uuid4()),
+            title=title,
+            created_at=now,
+            updated_at=now,
+            **kwargs
+        )
+
+
+@dataclass
+class SessionNote:
+    """会话备注"""
+    session_id: str
+    text: str = ""
+    tags: List[str] = field(default_factory=list)
+    bookmark: bool = False
+    created_at: int = 0
+    updated_at: int = 0
+
+    @classmethod
+    def create(cls, session_id: str, text: str = "", **kwargs) -> "SessionNote":
+        """创建备注"""
+        now = int(datetime.now().timestamp() * 1000)
+        return cls(
+            session_id=session_id,
+            text=text,
+            created_at=now,
+            updated_at=now,
+            **kwargs
+        )
+
+
+@dataclass
+class Requirement:
+    """需求数据模型"""
+    id: str
+    title: str
+    description: str = ""
+    category: str = "feature"  # feature/bug/refactor/docs/other
+    status: str = "draft"  # draft/active/completed/archived
+    priority: str = "p2"  # p0/p1/p2/p3
+    tags: List[str] = field(default_factory=list)
+    work_dirs: List[str] = field(default_factory=list)
+    created_at: int = 0
+    updated_at: int = 0
+    completed_at: int = 0
+
+    @classmethod
+    def create(cls, title: str, **kwargs) -> "Requirement":
+        """创建新需求"""
+        now = int(datetime.now().timestamp() * 1000)
+        # 生成REQ-XXX格式的ID
+        from .storage import get_storage
+        storage = get_storage()
+        existing = storage.load_requirements()
+        max_num = 0
+        for req in existing:
+            if req.id.startswith("REQ-"):
+                try:
+                    num = int(req.id.split("-")[1])
+                    max_num = max(max_num, num)
+                except ValueError:
+                    pass
+        new_id = f"REQ-{max_num + 1:03d}"
+        return cls(
+            id=new_id,
+            title=title,
+            created_at=now,
+            updated_at=now,
+            **kwargs
+        )
+
+
+@dataclass
+class RequirementSessionLink:
+    """需求-会话关联"""
+    requirement_id: str
+    session_id: str
+    role: str = "辅会话"  # 主会话/辅会话/参考会话
+    linked_at: int = 0
+    notes: str = ""
+
+    @classmethod
+    def create(cls, requirement_id: str, session_id: str, **kwargs) -> "RequirementSessionLink":
+        """创建关联"""
+        now = int(datetime.now().timestamp() * 1000)
+        return cls(
+            requirement_id=requirement_id,
+            session_id=session_id,
+            linked_at=now,
+            **kwargs
+        )
+
+
+@dataclass
+class ArchivedSession:
+    """归档会话"""
+    session_id: str
+    archive_type: str = "archived"  # archived（整理归档）/ trash（废纸篓）
+    archived_at: int = 0
+    insight: str = ""  # 归档反思/洞察（整理归档时填写）
+    project_name: str = ""  # 项目名（便于查询）
+    topic: str = ""  # 主题
+    reason: str = ""  # 归档原因
+
+    @classmethod
+    def create(cls, session_id: str, archive_type: str = "archived", **kwargs) -> "ArchivedSession":
+        """创建归档记录"""
+        now = int(datetime.now().timestamp() * 1000)
+        return cls(
+            session_id=session_id,
+            archive_type=archive_type,
+            archived_at=now,
+            **kwargs
+        )
 
 
 def extract_project_name(cwd: str) -> str:

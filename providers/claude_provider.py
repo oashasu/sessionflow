@@ -107,7 +107,7 @@ class ClaudeProvider(BaseSessionProvider):
         """扫描历史会话（projects目录JSONL）"""
         from core.models import SessionMeta, SessionRecord, extract_project_name
         from core.parser import get_jsonl_summary
-        from core.storage import update_stats_cache
+        from core import update_stats_cache
 
         sessions = []
 
@@ -172,7 +172,7 @@ class ClaudeProvider(BaseSessionProvider):
     def _scan_remote_impl(self, host: RemoteHost) -> List[Any]:
         """SSH扫描远程Claude会话（安全实现）"""
         from core.models import SessionMeta, SessionRecord, extract_project_name
-        from core.storage import update_stats_cache
+        from core import update_stats_cache
         import json
 
         sessions = []

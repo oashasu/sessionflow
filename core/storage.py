@@ -1,11 +1,19 @@
 """SessionFlow存储层"""
 
 import json
-import uuid
 from pathlib import Path
-from typing import Protocol, Optional, List, Dict, Any
-from dataclasses import dataclass, asdict, field
+from typing import Optional, List, Dict, Any
+from dataclasses import asdict
 from datetime import datetime
+
+from .models import (
+    RemoteHostConfig,
+    Task,
+    SessionNote,
+    Requirement,
+    RequirementSessionLink,
+    ArchivedSession,
+)
 
 
 STORAGE_DIR = Path.home() / ".sessionflow"
@@ -14,224 +22,6 @@ STORAGE_DIR = Path.home() / ".sessionflow"
 def ensure_storage_dir():
     """确保存储目录存在"""
     STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-
-
-@dataclass
-class RemoteHostConfig:
-    """远程主机配置（存储层版本）"""
-    id: str
-    name: str
-    hostname: str
-    user: str
-    ssh_alias: Optional[str] = None
-    claude_dir: str = "~/.claude/projects/"
-    tmux_prefix: str = "claude-"
-    stats_script: str = "~/sandbox/scripts/sessionflow_stats.py"  # 远程统计脚本路径
-    enabled: bool = True
-    last_scan_at: int = 0
-
-    @classmethod
-    def create(cls, name: str, hostname: str, user: str, **kwargs) -> "RemoteHostConfig":
-        """创建新主机配置"""
-        host_id = f"host-{uuid.uuid4().hex[:8]}"
-        return cls(id=host_id, name=name, hostname=hostname, user=user, **kwargs)
-
-
-@dataclass
-class Task:
-    """任务数据模型"""
-    id: str
-    title: str
-    description: str = ""
-    status: str = "todo"  # todo, in_progress, done
-    priority: str = "medium"  # high, medium, low
-    linked_session_id: Optional[str] = None
-    requirement_id: Optional[str] = None  # 所属需求ID（三级追溯：Requirement→Session→Task）
-    progress: int = 0  # 0-100
-    created_at: int = 0
-    updated_at: int = 0
-
-    @classmethod
-    def create(cls, title: str, **kwargs) -> "Task":
-        """创建新任务"""
-        now = int(datetime.now().timestamp() * 1000)
-        return cls(
-            id=str(uuid.uuid4()),
-            title=title,
-            created_at=now,
-            updated_at=now,
-            **kwargs
-        )
-
-
-@dataclass
-class SessionNote:
-    """会话备注"""
-    session_id: str
-    text: str = ""
-    tags: List[str] = field(default_factory=list)
-    bookmark: bool = False
-    created_at: int = 0
-    updated_at: int = 0
-
-    @classmethod
-    def create(cls, session_id: str, text: str = "", **kwargs) -> "SessionNote":
-        """创建备注"""
-        now = int(datetime.now().timestamp() * 1000)
-        return cls(
-            session_id=session_id,
-            text=text,
-            created_at=now,
-            updated_at=now,
-            **kwargs
-        )
-
-
-@dataclass
-class Requirement:
-    """需求数据模型"""
-    id: str                              # REQ-001格式
-    title: str                           # 需求标题
-    description: str = ""                # 详细描述
-    category: str = "feature"            # feature/bug/refactor/docs/other
-    status: str = "draft"                # draft/active/completed/archived
-    priority: str = "p2"                 # p0/p1/p2/p3
-    tags: List[str] = field(default_factory=list)
-    work_dirs: List[str] = field(default_factory=list)
-    created_at: int = 0
-    updated_at: int = 0
-    completed_at: int = 0                # 完成时间（可选）
-
-    @classmethod
-    def create(cls, title: str, **kwargs) -> "Requirement":
-        """创建新需求"""
-        now = int(datetime.now().timestamp() * 1000)
-        # 生成REQ-XXX格式的ID
-        storage = get_storage()
-        existing = storage.load_requirements()
-        max_num = 0
-        for req in existing:
-            if req.id.startswith("REQ-"):
-                try:
-                    num = int(req.id.split("-")[1])
-                    max_num = max(max_num, num)
-                except ValueError:
-                    pass
-        new_id = f"REQ-{max_num + 1:03d}"
-        return cls(
-            id=new_id,
-            title=title,
-            created_at=now,
-            updated_at=now,
-            **kwargs
-        )
-
-
-@dataclass
-class RequirementSessionLink:
-    """需求-会话关联"""
-    requirement_id: str                  # 需求ID
-    session_id: str                      # Claude session ID
-    role: str = "辅会话"              # 主会话/辅会话/参考会话
-    linked_at: int = 0                   # 关联时间
-    notes: str = ""                      # 该session贡献说明
-
-    @classmethod
-    def create(cls, requirement_id: str, session_id: str, **kwargs) -> "RequirementSessionLink":
-        """创建关联"""
-        now = int(datetime.now().timestamp() * 1000)
-        return cls(
-            requirement_id=requirement_id,
-            session_id=session_id,
-            linked_at=now,
-            **kwargs
-        )
-
-
-@dataclass
-class ArchivedSession:
-    """归档会话"""
-    session_id: str                      # 会话ID
-    archive_type: str = "archived"       # archived（整理归档）/ trash（废纸篓）
-    archived_at: int = 0                 # 归档时间
-    insight: str = ""                    # 归档反思/洞察（整理归档时填写）
-    project_name: str = ""               # 项目名（便于查询）
-    topic: str = ""                      # 主题
-    reason: str = ""                     # 归档原因
-
-    @classmethod
-    def create(cls, session_id: str, archive_type: str = "archived", **kwargs) -> "ArchivedSession":
-        """创建归档记录"""
-        now = int(datetime.now().timestamp() * 1000)
-        return cls(
-            session_id=session_id,
-            archive_type=archive_type,
-            archived_at=now,
-            **kwargs
-        )
-
-
-class StorageProtocol(Protocol):
-    """存储层协议"""
-
-    # Tasks
-    def load_tasks(self) -> List[Task]: ...
-    def save_tasks(self, tasks: List[Task]) -> None: ...
-
-    # Notes
-    def load_notes(self) -> Dict[str, SessionNote]: ...
-    def save_notes(self, notes: Dict[str, SessionNote]) -> None: ...
-
-    # Bookmarks
-    def load_bookmarks(self) -> List[str]: ...
-    def save_bookmarks(self, bookmarks: List[str]) -> None: ...
-
-    # Config
-    def load_config(self) -> Dict[str, Any]: ...
-    def save_config(self, config: Dict[str, Any]) -> None: ...
-
-    # Remote Hosts
-    def load_remote_hosts(self) -> List[RemoteHostConfig]: ...
-    def save_remote_hosts(self, hosts: List[RemoteHostConfig]) -> None: ...
-    def add_remote_host(self, host: RemoteHostConfig) -> None: ...
-    def remove_remote_host(self, host_id: str) -> bool: ...
-    def get_remote_host(self, host_id: str) -> Optional[RemoteHostConfig]: ...
-
-    # Requirements
-    def load_requirements(self) -> List[Requirement]: ...
-    def save_requirements(self, requirements: List[Requirement]) -> None: ...
-    def add_requirement(self, requirement: Requirement) -> None: ...
-    def get_requirement(self, req_id: str) -> Optional[Requirement]: ...
-    def update_requirement(self, req_id: str, **kwargs) -> bool: ...
-    def remove_requirement(self, req_id: str) -> bool: ...
-
-    # Requirement Session Links
-    def load_requirement_links(self) -> List[RequirementSessionLink]: ...
-    def save_requirement_links(self, links: List[RequirementSessionLink]) -> None: ...
-    def link_session_to_requirement(self, link: RequirementSessionLink) -> None: ...
-    def unlink_session(self, session_id: str) -> bool: ...
-    def get_session_requirement(self, session_id: str) -> Optional[RequirementSessionLink]: ...
-    def get_requirement_sessions(self, req_id: str) -> List[RequirementSessionLink]: ...
-
-    # Archived Sessions
-    def load_archived_sessions(self) -> List[ArchivedSession]: ...
-    def save_archived_sessions(self, sessions: List[ArchivedSession]) -> None: ...
-    def archive_session(self, session_id: str, archive_type: str = "archived", **kwargs) -> ArchivedSession: ...
-    def restore_session(self, session_id: str) -> bool: ...
-    def get_archived_session(self, session_id: str) -> Optional[ArchivedSession]: ...
-    def get_archived_by_type(self, archive_type: str) -> List[ArchivedSession]: ...
-    def delete_trash_session(self, session_id: str) -> bool: ...
-
-    # Stats Cache
-    def load_stats_cache(self) -> Dict[str, Dict[str, Any]]: ...
-    def save_stats_cache(self, cache: Dict[str, Dict[str, Any]]) -> None: ...
-    def get_cached_stats(self, session_id: str) -> Optional[Dict[str, Any]]: ...
-    def update_stats_cache(self, session_id: str, stats: Dict[str, Any]) -> None: ...
-
-    # Remote Sessions Cache
-    def get_cached_remote_sessions(self, host_id: str) -> Optional[List[Dict[str, Any]]]: ...
-    def save_cached_remote_sessions(self, host_id: str, sessions: List[Dict[str, Any]]) -> None: ...
-    def clear_remote_sessions_cache(self, host_id: str) -> None: ...
 
 
 class JSONStorage:
@@ -362,7 +152,6 @@ class JSONStorage:
         requirements = self.load_requirements()
         for i, r in enumerate(requirements):
             if r.id == req_id:
-                # 更新字段
                 for key, value in kwargs.items():
                     if hasattr(r, key):
                         setattr(r, key, value)
@@ -378,7 +167,6 @@ class JSONStorage:
         if len(new_reqs) == len(requirements):
             return False
         self.save_requirements(new_reqs)
-        # 同时删除关联链接
         links = self.load_requirement_links()
         new_links = [l for l in links if l.requirement_id != req_id]
         self.save_requirement_links(new_links)
@@ -396,10 +184,8 @@ class JSONStorage:
     def link_session_to_requirement(self, link: RequirementSessionLink) -> None:
         """关联session到需求"""
         links = self.load_requirement_links()
-        # 检查是否已存在关联
         for l in links:
             if l.session_id == link.session_id:
-                # 更新现有关联
                 l.requirement_id = link.requirement_id
                 l.role = link.role
                 l.linked_at = link.linked_at
@@ -431,8 +217,6 @@ class JSONStorage:
         links = self.load_requirement_links()
         return [l for l in links if l.requirement_id == req_id]
 
-    # ========== 归档管理 ==========
-
     def load_archived_sessions(self) -> List[ArchivedSession]:
         """加载归档会话列表"""
         data = self._read_json("archived_sessions.json", {"sessions": []})
@@ -446,10 +230,8 @@ class JSONStorage:
         """归档会话"""
         archived = ArchivedSession.create(session_id, archive_type, **kwargs)
         sessions = self.load_archived_sessions()
-        # 检查是否已归档
         existing = [s for s in sessions if s.session_id == session_id]
         if existing:
-            # 更新已存在的归档
             for s in sessions:
                 if s.session_id == session_id:
                     s.archive_type = archive_type
@@ -496,22 +278,20 @@ class JSONStorage:
         self.save_archived_sessions(new_sessions)
         return True
 
-    # ========== Stats Cache（JSON特有方法，用于迁移） ==========
-
     def load_stats_cache(self) -> Dict[str, Dict[str, Any]]:
-        """加载统计缓存（JSON方法）"""
+        """加载统计缓存"""
         data = self._read_json("stats_cache.json", {"cache": {}, "updated_at": 0})
         return data.get("cache", {})
 
     def save_stats_cache(self, cache: Dict[str, Dict[str, Any]]) -> None:
-        """保存统计缓存（JSON方法）"""
+        """保存统计缓存"""
         self._write_json("stats_cache.json", {
             "cache": cache,
             "updated_at": int(datetime.now().timestamp())
         })
 
     def get_cached_stats(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """获取缓存的统计（JSON方法 - 无TTL检查）"""
+        """获取缓存的统计"""
         cache = self.load_stats_cache()
         entry = cache.get(session_id)
         if entry:
@@ -519,7 +299,7 @@ class JSONStorage:
         return None
 
     def update_stats_cache(self, session_id: str, stats: Dict[str, Any]) -> None:
-        """更新单个会话的统计缓存（JSON方法）"""
+        """更新单个会话的统计缓存"""
         cache = self.load_stats_cache()
         cache[session_id] = {
             'stats': stats,
@@ -527,10 +307,8 @@ class JSONStorage:
         }
         self.save_stats_cache(cache)
 
-    # ========== Remote Sessions Cache（JSON方法 - 用于迁移） ==========
-
     def get_cached_remote_sessions(self, host_id: str) -> Optional[List[Dict[str, Any]]]:
-        """获取缓存的远程会话列表（JSON方法 - 无TTL检查）"""
+        """获取缓存的远程会话列表"""
         data = self._read_json("remote_sessions_cache.json", {"cache": {}})
         entry = data.get("cache", {}).get(host_id)
         if entry:
@@ -538,7 +316,7 @@ class JSONStorage:
         return None
 
     def save_cached_remote_sessions(self, host_id: str, sessions: List[Dict[str, Any]]) -> None:
-        """缓存远程会话列表（JSON方法）"""
+        """缓存远程会话列表"""
         data = self._read_json("remote_sessions_cache.json", {"cache": {}})
         data["cache"][host_id] = {
             'sessions': sessions,
@@ -547,7 +325,7 @@ class JSONStorage:
         self._write_json("remote_sessions_cache.json", data)
 
     def clear_remote_sessions_cache(self, host_id: str) -> None:
-        """清除指定主机的会话缓存（JSON方法）"""
+        """清除指定主机的会话缓存"""
         data = self._read_json("remote_sessions_cache.json", {"cache": {}})
         if host_id in data.get("cache", {}):
             del data["cache"][host_id]
@@ -560,15 +338,11 @@ _migrated: bool = False
 
 
 def get_storage() -> "SQLiteStorage":
-    """获取全局存储实例（SQLite）
-
-    自动迁移：首次调用时检测JSON文件存在则自动迁移到SQLite
-    """
+    """获取全局存储实例（SQLite）"""
     global _storage, _migrated
     if _storage is None:
         from .sqlite_storage import SQLiteStorage
         _storage = SQLiteStorage()
-        # 自动迁移检测
         if not _migrated:
             _migrated = True
             _auto_migrate_from_json(_storage)
@@ -576,21 +350,19 @@ def get_storage() -> "SQLiteStorage":
 
 
 def _auto_migrate_from_json(sqlite_storage: "SQLiteStorage") -> None:
-    """自动从JSON迁移到SQLite（如果JSON文件存在且未迁移）"""
+    """自动从JSON迁移到SQLite"""
     import logging
     logger = logging.getLogger(__name__)
 
-    # 检查是否已完成迁移（通过config表标记）
     config = sqlite_storage.load_config()
     if config.get("_migration_completed"):
-        return  # 已迁移，跳过
+        return
 
-    # 检查是否有需要迁移的JSON文件
     json_files = [
         "tasks.json", "notes.json", "bookmarks.json",
         "config.json", "remote_hosts.json", "requirements.json",
         "requirement_sessions.json", "archived_sessions.json",
-        "stats_cache.json"  # 统计缓存
+        "stats_cache.json"
     ]
     has_json_data = any((STORAGE_DIR / f).exists() for f in json_files)
 
@@ -598,19 +370,16 @@ def _auto_migrate_from_json(sqlite_storage: "SQLiteStorage") -> None:
         try:
             json_storage = JSONStorage()
             sqlite_storage.migrate_from_json(json_storage)
-            # 标记迁移完成
             config["_migration_completed"] = True
             sqlite_storage.save_config(config)
             logger.info("已自动迁移JSON数据到SQLite数据库")
-            # 可选：备份或删除JSON文件
-            # 这里保留JSON文件作为备份，用户可手动删除
         except Exception as e:
             logger.warning(f"JSON迁移失败（已存在SQLite数据则跳过）: {e}")
 
 
 # ========== 统计缓存（代理到SQLiteStorage） ==========
 
-STATS_CACHE_TTL = 86400  # 24小时缓存有效期（秒）
+STATS_CACHE_TTL = 86400
 
 
 def load_stats_cache() -> Dict[str, Dict[str, Any]]:
@@ -626,7 +395,7 @@ def save_stats_cache(cache: Dict[str, Dict[str, Any]]) -> None:
 
 
 def get_cached_stats(session_id: str) -> Optional[Dict[str, Any]]:
-    """获取缓存的统计（如果有效）"""
+    """获取缓存的统计"""
     storage = get_storage()
     return storage.get_cached_stats(session_id)
 

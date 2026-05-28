@@ -898,7 +898,7 @@ class TestSQLiteMigration:
 
 class TestSQLiteTasks:
     def test_save_and_load_tasks(self, sqlite_storage):
-        from core.storage import Task
+        from core import Task
         task = Task(id="t1", title="Test Task", description="desc", status="todo",
                     priority="high", progress=50, created_at=1000, updated_at=2000)
         sqlite_storage.save_tasks([task])
@@ -908,7 +908,7 @@ class TestSQLiteTasks:
         assert loaded[0].title == "Test Task"
 
     def test_save_replaces_all(self, sqlite_storage):
-        from core.storage import Task
+        from core import Task
         t1 = Task(id="t1", title="Task 1", created_at=1000, updated_at=1000)
         t2 = Task(id="t2", title="Task 2", created_at=2000, updated_at=2000)
         sqlite_storage.save_tasks([t1, t2])
@@ -919,7 +919,7 @@ class TestSQLiteTasks:
 
 class TestSQLiteNotes:
     def test_save_and_load_notes(self, sqlite_storage):
-        from core.storage import SessionNote
+        from core import SessionNote
         note = SessionNote(session_id="s1", text="hello", tags=["tag1", "tag2"],
                            bookmark=True, created_at=1000, updated_at=2000)
         sqlite_storage.save_notes({"s1": note})
@@ -930,7 +930,7 @@ class TestSQLiteNotes:
         assert loaded["s1"].bookmark  # SQLite stores as 0/1 int
 
     def test_empty_tags(self, sqlite_storage):
-        from core.storage import SessionNote
+        from core import SessionNote
         note = SessionNote(session_id="s2", text="no tags", tags=[])
         sqlite_storage.save_notes({"s2": note})
         loaded = sqlite_storage.load_notes()
@@ -963,7 +963,7 @@ class TestSQLiteConfig:
 
 class TestSQLiteRemoteHosts:
     def test_crud_operations(self, sqlite_storage):
-        from core.storage import RemoteHostConfig
+        from core import RemoteHostConfig
         host = RemoteHostConfig(
             id="h1", name="server1", hostname="192.168.1.1",
             user="admin", ssh_alias="srv1"
@@ -990,7 +990,7 @@ class TestSQLiteRemoteHosts:
 
 class TestSQLiteRequirements:
     def test_crud_operations(self, sqlite_storage):
-        from core.storage import Requirement
+        from core import Requirement
         req = Requirement(id="REQ-001", title="Build feature X", description="desc",
                           category="feature", status="draft", priority="p1",
                           tags=["frontend"], work_dirs=["/src"], created_at=1000, updated_at=2000)
@@ -1010,7 +1010,7 @@ class TestSQLiteRequirements:
 
     def test_update_requirement(self, sqlite_storage):
         """Line 428: covers the return False path when req not found."""
-        from core.storage import Requirement
+        from core import Requirement
         req = Requirement(id="REQ-001", title="Original", created_at=1000, updated_at=1000)
         sqlite_storage.save_requirements([req])
 
@@ -1024,7 +1024,7 @@ class TestSQLiteRequirements:
         assert result is False
 
     def test_remove_requirement(self, sqlite_storage):
-        from core.storage import Requirement
+        from core import Requirement
         req = Requirement(id="REQ-001", title="To remove", created_at=1000, updated_at=1000)
         sqlite_storage.save_requirements([req])
 
@@ -1038,7 +1038,7 @@ class TestSQLiteRequirements:
         assert result is False
 
     def test_remove_requirement_cleans_links(self, sqlite_storage):
-        from core.storage import Requirement, RequirementSessionLink
+        from core import Requirement, RequirementSessionLink
         req = Requirement(id="REQ-001", title="Req with link", created_at=1000, updated_at=1000)
         sqlite_storage.save_requirements([req])
         link = RequirementSessionLink(
@@ -1052,7 +1052,7 @@ class TestSQLiteRequirements:
         assert len(remaining_links) == 0
 
     def test_add_requirement(self, sqlite_storage):
-        from core.storage import Requirement
+        from core import Requirement
         req = Requirement(id="REQ-001", title="Added", created_at=1000, updated_at=1000)
         sqlite_storage.add_requirement(req)
         assert sqlite_storage.get_requirement("REQ-001") is not None
@@ -1060,7 +1060,7 @@ class TestSQLiteRequirements:
 
 class TestSQLiteRequirementLinks:
     def test_save_load_links(self, sqlite_storage):
-        from core.storage import RequirementSessionLink
+        from core import RequirementSessionLink
         link = RequirementSessionLink(
             requirement_id="REQ-001", session_id="s1", role="primary",
             linked_at=1000, notes="test"
@@ -1071,7 +1071,7 @@ class TestSQLiteRequirementLinks:
         assert loaded[0].session_id == "s1"
 
     def test_link_session_to_requirement(self, sqlite_storage):
-        from core.storage import RequirementSessionLink
+        from core import RequirementSessionLink
         link = RequirementSessionLink(
             requirement_id="REQ-001", session_id="s1", role="primary",
             linked_at=1000
@@ -1082,7 +1082,7 @@ class TestSQLiteRequirementLinks:
         assert found.requirement_id == "REQ-001"
 
     def test_link_session_replaces_existing(self, sqlite_storage):
-        from core.storage import RequirementSessionLink
+        from core import RequirementSessionLink
         link1 = RequirementSessionLink(requirement_id="REQ-001", session_id="s1", role="primary", linked_at=1000)
         link2 = RequirementSessionLink(requirement_id="REQ-002", session_id="s1", role="secondary", linked_at=2000)
         sqlite_storage.link_session_to_requirement(link1)
@@ -1091,7 +1091,7 @@ class TestSQLiteRequirementLinks:
         assert found.requirement_id == "REQ-002"
 
     def test_unlink_session(self, sqlite_storage):
-        from core.storage import RequirementSessionLink
+        from core import RequirementSessionLink
         link = RequirementSessionLink(requirement_id="REQ-001", session_id="s1", linked_at=1000)
         sqlite_storage.link_session_to_requirement(link)
         result = sqlite_storage.unlink_session("s1")
@@ -1103,7 +1103,7 @@ class TestSQLiteRequirementLinks:
         assert result is False
 
     def test_get_requirement_sessions(self, sqlite_storage):
-        from core.storage import RequirementSessionLink
+        from core import RequirementSessionLink
         links = [
             RequirementSessionLink(requirement_id="REQ-001", session_id="s1", linked_at=1000),
             RequirementSessionLink(requirement_id="REQ-001", session_id="s2", linked_at=2000),
@@ -1167,7 +1167,7 @@ class TestSQLiteArchivedSessions:
         assert sqlite_storage.get_archived_session("s1") is not None
 
     def test_save_and_load_archived_sessions(self, sqlite_storage):
-        from core.storage import ArchivedSession
+        from core import ArchivedSession
         sessions = [
             ArchivedSession(session_id="s1", archive_type="archived", archived_at=1000, insight="i1", project_name="p1", topic="t1", reason="r1"),
             ArchivedSession(session_id="s2", archive_type="trash", archived_at=2000, insight="i2", project_name="p2", topic="t2", reason="r2"),
@@ -1266,7 +1266,7 @@ class TestSQLiteMigrateFromJson:
     """Lines 703-748: migrate_from_json method."""
 
     def test_migrate_tasks(self, sqlite_storage):
-        from core.storage import Task
+        from core import Task
         mock_json = MagicMock()
         mock_json.load_tasks.return_value = [
             Task(id="t1", title="Migrated Task", created_at=1000, updated_at=1000)
@@ -1287,7 +1287,7 @@ class TestSQLiteMigrateFromJson:
         assert tasks[0].title == "Migrated Task"
 
     def test_migrate_notes(self, sqlite_storage):
-        from core.storage import SessionNote
+        from core import SessionNote
         mock_json = MagicMock()
         mock_json.load_tasks.return_value = []
         mock_json.load_notes.return_value = {
@@ -1342,7 +1342,7 @@ class TestSQLiteMigrateFromJson:
         assert config["theme"] == "dark"
 
     def test_migrate_remote_hosts(self, sqlite_storage):
-        from core.storage import RemoteHostConfig
+        from core import RemoteHostConfig
         mock_json = MagicMock()
         mock_json.load_tasks.return_value = []
         mock_json.load_notes.return_value = {}
@@ -1363,7 +1363,7 @@ class TestSQLiteMigrateFromJson:
         assert hosts[0].name == "server"
 
     def test_migrate_requirements(self, sqlite_storage):
-        from core.storage import Requirement
+        from core import Requirement
         mock_json = MagicMock()
         mock_json.load_tasks.return_value = []
         mock_json.load_notes.return_value = {}
@@ -1385,7 +1385,7 @@ class TestSQLiteMigrateFromJson:
         assert reqs[0].tags == ["t1"]
 
     def test_migrate_requirement_links(self, sqlite_storage):
-        from core.storage import RequirementSessionLink
+        from core import RequirementSessionLink
         mock_json = MagicMock()
         mock_json.load_tasks.return_value = []
         mock_json.load_notes.return_value = {}
@@ -1406,7 +1406,7 @@ class TestSQLiteMigrateFromJson:
         assert links[0].session_id == "s1"
 
     def test_migrate_archived_sessions(self, sqlite_storage):
-        from core.storage import ArchivedSession
+        from core import ArchivedSession
         mock_json = MagicMock()
         mock_json.load_tasks.return_value = []
         mock_json.load_notes.return_value = {}

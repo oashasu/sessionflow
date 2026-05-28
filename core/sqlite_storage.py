@@ -22,7 +22,7 @@ from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 
-from .storage import (
+from .models import (
     RemoteHostConfig,
     Task,
     SessionNote,
@@ -52,10 +52,16 @@ class SQLiteStorage:
 
     def _get_conn(self) -> sqlite3.Connection:
         """获取数据库连接（复用）"""
-        if not hasattr(self, '_conn') or self._conn is None:
-            self._conn = sqlite3.connect(self.db_path, timeout=30.0)
-            self._conn.row_factory = sqlite3.Row
-            self._conn.execute("PRAGMA journal_mode=WAL")
+        conn = getattr(self, '_conn', None)
+        try:
+            if conn is not None:
+                conn.execute("SELECT 1")
+                return conn
+        except sqlite3.ProgrammingError:
+            self._conn = None
+        self._conn = sqlite3.connect(self.db_path, timeout=30.0)
+        self._conn.row_factory = sqlite3.Row
+        self._conn.execute("PRAGMA journal_mode=WAL")
         return self._conn
 
     def close(self):

@@ -9,14 +9,16 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.storage import (
-    JSONStorage,
+from core import (
     ArchivedSession,
     Requirement,
     RequirementSessionLink,
     Task,
     SessionNote,
     RemoteHostConfig,
+)
+from core.storage import (
+    JSONStorage,
     STORAGE_DIR,
     ensure_storage_dir,
     _auto_migrate_from_json,

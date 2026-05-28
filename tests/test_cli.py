@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pytest
 from unittest.mock import patch, MagicMock
 
-from sessionflow import find_session, print_table, cmd_scan, cmd_list, cmd_open
+from cli.main import find_session, print_table, cmd_scan, cmd_list, cmd_open
 from core.models import SessionMeta, SessionRecord
 from core.errors import SessionNotFoundError, MultipleMatchError
 
@@ -85,9 +85,9 @@ class TestCLIHelpers:
     def test_print_table_no_rich(self):
         """测试无Rich库表格输出"""
         # 强制禁用Rich
-        import sessionflow
-        sessionflow.USE_RICH = False
-        sessionflow.console = None
+        import cli.main
+        cli.main.USE_RICH = False
+        cli.main.console = None
 
         rows = [["a", "b", "c"], ["1", "2", "3"]]
         headers = ["Col1", "Col2", "Col3"]
@@ -110,7 +110,7 @@ class TestCLIHelpers:
 class TestCLICommands:
     """测试CLI命令"""
 
-    @patch('sessionflow.scan_sessions')
+    @patch('cli.main.scan_sessions')
     def test_cmd_scan(self, mock_scan):
         """测试scan命令"""
         from argparse import Namespace
@@ -126,7 +126,7 @@ class TestCLICommands:
         result = cmd_scan(args)
         assert result is None or result == 0
 
-    @patch('sessionflow.scan_sessions')
+    @patch('cli.main.scan_sessions')
     def test_cmd_list(self, mock_scan):
         """测试list命令"""
         from argparse import Namespace
@@ -142,8 +142,8 @@ class TestCLICommands:
         result = cmd_list(args)
         assert result is None or result == 0
 
-    @patch('sessionflow.scan_sessions')
-    @patch('sessionflow.generate_recovery_cmd')
+    @patch('cli.main.scan_sessions')
+    @patch('cli.main.generate_recovery_cmd')
     def test_cmd_open(self, mock_cmd, mock_scan):
         """测试open命令"""
         from argparse import Namespace
@@ -161,11 +161,11 @@ class TestCLICommands:
         result = cmd_open(args)
         assert result is None or result == 0
 
-    @patch('sessionflow.scan_sessions')
+    @patch('cli.main.scan_sessions')
     def test_cmd_status(self, mock_scan):
         """测试status命令"""
         from argparse import Namespace
-        from sessionflow import cmd_status
+        from cli.main import cmd_status
         mock_scan.return_value = [
             SessionRecord(
                 meta=SessionMeta(session_id="test-id", cwd="/test", status="busy", started_at=0, updated_at=0),
@@ -177,11 +177,11 @@ class TestCLICommands:
         result = cmd_status(args)
         assert result is None or result == 0
 
-    @patch('sessionflow.scan_sessions')
+    @patch('cli.main.scan_sessions')
     def test_cmd_status_no_active(self, mock_scan):
         """测试status命令无活跃会话"""
         from argparse import Namespace
-        from sessionflow import cmd_status
+        from cli.main import cmd_status
         mock_scan.return_value = [
             SessionRecord(
                 meta=SessionMeta(session_id="test-id", cwd="/test", status="idle", started_at=0, updated_at=0),

@@ -24,7 +24,8 @@ from core.recovery import (
     attach_tmux_session,
 )
 from core.parser import parse_jsonl_file, get_jsonl_summary, find_ai_title, get_jsonl_stats, find_first_user_message, get_session_tasks
-from core.storage import Task, SessionNote, JSONStorage, get_storage, STORAGE_DIR, Requirement, RequirementSessionLink, ArchivedSession, RemoteHostConfig
+from core import Task, SessionNote, Requirement, RequirementSessionLink, ArchivedSession, RemoteHostConfig
+from core.storage import JSONStorage, get_storage, STORAGE_DIR
 from core.sqlite_storage import SQLiteStorage
 from core.errors import (
     SessionFlowError,
@@ -36,7 +37,7 @@ from core.errors import (
     JsonlNotFoundError,
     SecurityError,
 )
-from sessionflow import cmd_view, cmd_note, cmd_task, cmd_progress, cmd_bookmark, print_table
+from cli.main import cmd_view, cmd_note, cmd_task, cmd_progress, cmd_bookmark, print_table
 
 
 class TestModels(unittest.TestCase):
@@ -920,7 +921,7 @@ class TestCLICommands(unittest.TestCase):
         storage_module._storage = None
         self.storage = get_storage()
         # Patch Rich console for testing
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         self.original_use_rich = sessionflow.USE_RICH
         sessionflow.USE_RICH = False  # Disable Rich for simpler testing
 
@@ -931,12 +932,12 @@ class TestCLICommands(unittest.TestCase):
         core.storage.STORAGE_DIR = self.original_storage_dir
         import core.storage as storage_module
         storage_module._storage = None
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         sessionflow.USE_RICH = self.original_use_rich
 
     def test_cmd_scan_active(self):
         """测试scan命令（活跃会话）"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(all=False, limit=10)
         # 应该不抛异常
@@ -948,7 +949,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_scan_all(self):
         """测试scan命令（全部会话）"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(all=True, limit=10)
         try:
@@ -958,7 +959,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_list_basic(self):
         """测试list命令基本功能"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(
             all=False, remote=False, host_id=None,
@@ -971,7 +972,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_list_with_project_filter(self):
         """测试list命令项目过滤"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(
             all=True, remote=False, host_id=None,
@@ -984,7 +985,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_status_existing_session(self):
         """测试status命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_sessions()
         if sessions:
@@ -996,7 +997,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_view_existing_session(self):
         """测试view命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_all_sessions()
         if sessions:
@@ -1005,7 +1006,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_tasks_existing_session(self):
         """测试tasks命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_all_sessions()
         if sessions:
@@ -1014,7 +1015,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_stats_existing_session(self):
         """测试stats命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_all_sessions()
         if sessions:
@@ -1023,7 +1024,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_note_add(self):
         """测试note命令添加备注"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_sessions()
         if sessions:
@@ -1032,7 +1033,7 @@ class TestCLICommands(unittest.TestCase):
                 text="测试备注", tags=None, clear=False, select_first=True
             )
             sessionflow.cmd_note(args)
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_sessions()
         if sessions:
@@ -1047,7 +1048,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_note_show(self):
         """测试note命令显示备注"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_sessions()
         if sessions:
@@ -1062,7 +1063,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_progress(self):
         """测试progress命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(show=True, session_id=None, set_percent=None)
         try:
@@ -1072,7 +1073,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_bookmark_add(self):
         """测试bookmark命令添加"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_sessions()
         if sessions:
@@ -1084,7 +1085,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_bookmark_list(self):
         """测试bookmark命令列出"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(action="list", session_id=None)
         try:
@@ -1094,7 +1095,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_req_list(self):
         """测试req命令列出需求"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(action="list", id=None, title=None, status=None, priority=None, category=None, tags=None)
         try:
@@ -1104,7 +1105,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_req_create(self):
         """测试req命令创建需求"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(
             action="create", id=None, title="测试需求",
@@ -1118,7 +1119,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_link_session(self):
         """测试link命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_sessions()
         req = Requirement.create("测试需求")
@@ -1135,7 +1136,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_unlink_session(self):
         """测试unlink命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_sessions()
         req = Requirement.create("测试需求")
@@ -1151,7 +1152,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_which_req(self):
         """测试which_req命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         sessions = scan_sessions()
         req = Requirement.create("测试需求")
@@ -1167,7 +1168,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_archive_show(self):
         """测试archive命令显示"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(action="show", session_id=None, archive_type=None, insight=None, reason=None, project=None, restore=False)
         try:
@@ -1177,7 +1178,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_host_add(self):
         """测试host add命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(
             host_cmd="add", host_id=None,
@@ -1191,7 +1192,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_host_list(self):
         """测试host list命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         # 先添加一个主机
         host_config = RemoteHostConfig.create("测试主机", hostname="192.168.1.1", user="test")
@@ -1201,7 +1202,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_task_add(self):
         """测试task add命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         args = Namespace(
             task_cmd="add", task_id=None, task_id_pos=None,
@@ -1215,7 +1216,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_task_list(self):
         """测试task list命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         # 先添加一个任务
         task = Task.create("测试任务列表项")
@@ -1231,7 +1232,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_task_done(self):
         """测试task done命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         task = Task.create("待完成任务")
         tasks = self.storage.load_tasks()
@@ -1246,7 +1247,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_req_show(self):
         """测试req show命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         req = Requirement.create("显示测试需求", priority="p1")
         self.storage.add_requirement(req)
@@ -1260,7 +1261,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_req_edit(self):
         """测试req edit命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         req = Requirement.create("编辑测试需求", priority="p2")
         self.storage.add_requirement(req)
@@ -1278,7 +1279,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_req_done(self):
         """测试req done命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         req = Requirement.create("完成测试需求")
         self.storage.add_requirement(req)
@@ -1290,7 +1291,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_recover(self):
         """测试recover命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         sessions = scan_sessions()
@@ -1300,76 +1301,76 @@ class TestCLICommands(unittest.TestCase):
 
     def test_print_table_with_data(self):
         """测试print_table函数"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         rows = [["a", "b", "c"], ["d", "e", "f"]]
         sessionflow.print_table("测试表格", rows, ["列1", "列2", "列3"])
 
     def test_main_scan(self):
         """测试main函数scan命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from unittest.mock import patch
         with patch('sys.argv', ['sessionflow', 'scan']):
             sessionflow.main()
 
     def test_main_list(self):
         """测试main函数list命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from unittest.mock import patch
         with patch('sys.argv', ['sessionflow', 'list']):
             sessionflow.main()
 
     def test_main_status(self):
         """测试main函数status命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from unittest.mock import patch
         with patch('sys.argv', ['sessionflow', 'status']):
             sessionflow.main()
 
     def test_main_progress(self):
         """测试main函数progress命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from unittest.mock import patch
         with patch('sys.argv', ['sessionflow', 'progress']):
             sessionflow.main()
 
     def test_main_bookmark_list(self):
         """测试main函数bookmark命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from unittest.mock import patch
         with patch('sys.argv', ['sessionflow', 'bookmark', 'list']):
             sessionflow.main()
 
     def test_main_task_list(self):
         """测试main函数task命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from unittest.mock import patch
         with patch('sys.argv', ['sessionflow', 'task', 'list']):
             sessionflow.main()
 
     def test_main_req_list(self):
         """测试main函数req命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from unittest.mock import patch
         with patch('sys.argv', ['sessionflow', 'req', 'list']):
             sessionflow.main()
 
     def test_main_host_list(self):
         """测试main函数host命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from unittest.mock import patch
         with patch('sys.argv', ['sessionflow', 'host', 'list']):
             sessionflow.main()
 
     def test_main_archive_show(self):
         """测试main函数req show命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from unittest.mock import patch
         with patch('sys.argv', ['sessionflow', 'req', 'list']):
             sessionflow.main()
 
     def test_cmd_trash_list(self):
         """测试trash --list命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         # 先归档一个会话到废纸篓
         self.storage.archive_session("test-trash-session", archive_type="trash", project_name="test")
@@ -1378,7 +1379,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_restore_archived(self):
         """测试restore命令恢复已归档会话"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         # 先归档一个会话
         self.storage.archive_session("test-restore-session", archive_type="archived", project_name="test")
@@ -1390,7 +1391,7 @@ class TestCLICommands(unittest.TestCase):
 
     def test_cmd_archive_session(self):
         """测试archive命令归档会话"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         sessions = scan_sessions()
@@ -1412,7 +1413,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_find_session_exact_match(self):
         """测试精确匹配"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from core.models import SessionMeta, SessionRecord
 
         sessions = [
@@ -1427,7 +1428,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_find_session_prefix_match_single(self):
         """测试前缀匹配（单个结果）"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from core.models import SessionMeta, SessionRecord
 
         sessions = [
@@ -1442,7 +1443,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_find_session_prefix_match_multiple(self):
         """测试前缀匹配（多个结果抛异常）"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from core.models import SessionMeta, SessionRecord
 
         sessions = [
@@ -1461,7 +1462,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_find_session_prefix_match_select_first(self):
         """测试前缀匹配多结果时选择第一个"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from core.models import SessionMeta, SessionRecord
 
         sessions = [
@@ -1480,7 +1481,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_find_session_not_found(self):
         """测试未找到会话抛异常"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from core.models import SessionMeta, SessionRecord
 
         sessions = [
@@ -1495,7 +1496,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_find_session_short_prefix_not_match(self):
         """测试前缀太短不匹配"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from core.models import SessionMeta, SessionRecord
 
         sessions = [
@@ -1511,7 +1512,7 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_print_table_basic(self):
         """测试表格打印"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         import io
         import sys
 
@@ -1537,19 +1538,19 @@ class TestNoRichFallback(unittest.TestCase):
 
     def setUp(self):
         """保存原始状态"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         self.original_use_rich = sessionflow.USE_RICH
         self.original_console = sessionflow.console
 
     def tearDown(self):
         """恢复原始状态"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         sessionflow.USE_RICH = self.original_use_rich
         sessionflow.console = self.original_console
 
     def test_print_table_without_rich(self):
         """测试Rich不可用时的表格打印"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         import io
         import sys
 
@@ -1575,7 +1576,7 @@ class TestNoRichFallback(unittest.TestCase):
 
     def test_cmd_stats_without_rich(self):
         """测试stats命令无Rich时的输出"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -1606,7 +1607,7 @@ class TestCmdViewEdgeCases(unittest.TestCase):
 
     def test_cmd_view_session_without_log_path(self):
         """测试view命令会话无log_path"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.models import SessionMeta, SessionRecord
         import io
@@ -1622,7 +1623,7 @@ class TestCmdViewEdgeCases(unittest.TestCase):
 
         # 使用scan_all_sessions返回这个会话
         from unittest.mock import patch
-        with patch('sessionflow.scan_all_sessions', return_value=sessions):
+        with patch('cli.main.scan_all_sessions', return_value=sessions):
             args = Namespace(session_id="test-no-log", select_first=True, lines=10)
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
@@ -1635,7 +1636,7 @@ class TestCmdViewEdgeCases(unittest.TestCase):
 
     def test_cmd_view_session_with_log_path(self):
         """测试view命令会话有log_path"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_all_sessions
         import io
@@ -1662,7 +1663,7 @@ class TestCmdTasksEdgeCases(unittest.TestCase):
 
     def test_cmd_tasks_session_without_log_path(self):
         """测试tasks命令会话无log_path"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.models import SessionMeta, SessionRecord
         import io
@@ -1676,7 +1677,7 @@ class TestCmdTasksEdgeCases(unittest.TestCase):
         ]
 
         from unittest.mock import patch
-        with patch('sessionflow.scan_all_sessions', return_value=sessions):
+        with patch('cli.main.scan_all_sessions', return_value=sessions):
             args = Namespace(session_id="test-no-tasks", select_first=True)
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
@@ -1698,7 +1699,7 @@ class TestCmdNoteClear(unittest.TestCase):
 
     def test_cmd_note_clear_existing(self):
         """测试清除已有备注"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -1732,7 +1733,7 @@ class TestCmdNoteClear(unittest.TestCase):
 
     def test_cmd_note_clear_non_existing(self):
         """测试清除不存在备注"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.models import SessionMeta, SessionRecord
         import io
@@ -1746,7 +1747,7 @@ class TestCmdNoteClear(unittest.TestCase):
         ]
 
         from unittest.mock import patch
-        with patch('sessionflow.scan_all_sessions', return_value=sessions):
+        with patch('cli.main.scan_all_sessions', return_value=sessions):
             args = Namespace(
                 session_id="test-clear-none",
                 select_first=True,
@@ -1773,7 +1774,7 @@ class TestCmdTaskDelete(unittest.TestCase):
 
     def test_cmd_task_delete_existing(self):
         """测试删除存在的任务"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -1805,7 +1806,7 @@ class TestCmdTaskDelete(unittest.TestCase):
 
     def test_cmd_task_delete_non_existing(self):
         """测试删除不存在任务"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -1838,7 +1839,7 @@ class TestCmdTaskEdit(unittest.TestCase):
 
     def test_cmd_task_edit_title(self):
         """测试编辑任务标题"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -1871,7 +1872,7 @@ class TestCmdTaskEdit(unittest.TestCase):
 
     def test_cmd_task_edit_status(self):
         """测试编辑任务状态"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -1905,7 +1906,7 @@ class TestCmdTaskEdit(unittest.TestCase):
 
     def test_cmd_task_edit_priority(self):
         """测试编辑任务优先级"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -1938,7 +1939,7 @@ class TestCmdTaskEdit(unittest.TestCase):
 
     def test_cmd_task_edit_progress(self):
         """测试编辑任务进度"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -1972,7 +1973,7 @@ class TestCmdTaskEdit(unittest.TestCase):
 
     def test_cmd_task_edit_non_existing(self):
         """测试编辑不存在任务"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2007,7 +2008,7 @@ class TestCmdTaskLink(unittest.TestCase):
 
     def test_cmd_task_link_success(self):
         """测试任务关联会话成功"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -2050,7 +2051,7 @@ class TestCmdTaskDone(unittest.TestCase):
 
     def test_cmd_task_done_existing(self):
         """测试完成存在的任务"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2082,7 +2083,7 @@ class TestCmdTaskDone(unittest.TestCase):
 
     def test_cmd_task_done_non_existing(self):
         """测试完成不存在任务"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2115,7 +2116,7 @@ class TestCmdReqDone(unittest.TestCase):
 
     def test_cmd_req_done_existing(self):
         """测试完成存在的需求"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2142,7 +2143,7 @@ class TestCmdArchive(unittest.TestCase):
 
     def setUp(self):
         """测试前清理归档数据"""
-        from core.storage import get_storage
+        from core import get_storage
         self.storage = get_storage()
         self.storage.save_archived_sessions([])
 
@@ -2152,7 +2153,7 @@ class TestCmdArchive(unittest.TestCase):
 
     def test_cmd_archive_add(self):
         """测试添加归档"""
-        from sessionflow import cmd_archive
+        from cli.main import cmd_archive
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
 
@@ -2170,8 +2171,8 @@ class TestCmdArchive(unittest.TestCase):
             select_first=False
         )
 
-        with patch('sessionflow.scan_all_sessions') as mock_scan:
-            with patch('sessionflow.find_session') as mock_find:
+        with patch('cli.main.scan_all_sessions') as mock_scan:
+            with patch('cli.main.find_session') as mock_find:
                 mock_scan.return_value = []
                 mock_find.return_value = mock_session
                 result = cmd_archive(args)
@@ -2186,7 +2187,7 @@ class TestCmdArchive(unittest.TestCase):
 
     def test_cmd_archive_trash(self):
         """测试放入废纸篓"""
-        from sessionflow import cmd_trash
+        from cli.main import cmd_trash
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
 
@@ -2202,8 +2203,8 @@ class TestCmdArchive(unittest.TestCase):
             select_first=False
         )
 
-        with patch('sessionflow.scan_all_sessions') as mock_scan:
-            with patch('sessionflow.find_session') as mock_find:
+        with patch('cli.main.scan_all_sessions') as mock_scan:
+            with patch('cli.main.find_session') as mock_find:
                 mock_scan.return_value = []
                 mock_find.return_value = mock_session
                 result = cmd_trash(args)
@@ -2216,9 +2217,9 @@ class TestCmdArchive(unittest.TestCase):
 
     def test_cmd_archive_restore(self):
         """测试恢复归档"""
-        from sessionflow import cmd_restore
+        from cli.main import cmd_restore
         from argparse import Namespace
-        from core.storage import ArchivedSession
+        from core import ArchivedSession
 
         # 先添加归档数据
         archived = ArchivedSession.create("test-restore-789", "archived")
@@ -2234,9 +2235,9 @@ class TestCmdArchive(unittest.TestCase):
 
     def test_cmd_trash_list(self):
         """测试列出废纸篓"""
-        from sessionflow import cmd_trash
+        from cli.main import cmd_trash
         from argparse import Namespace
-        from core.storage import ArchivedSession
+        from core import ArchivedSession
 
         # 添加废纸篓数据
         self.storage.archive_session("trash-list-1", "trash", project_name="项目A")
@@ -2248,9 +2249,9 @@ class TestCmdArchive(unittest.TestCase):
 
     def test_cmd_delete_with_force(self):
         """测试永久删除"""
-        from sessionflow import cmd_delete
+        from cli.main import cmd_delete
         from argparse import Namespace
-        from core.storage import ArchivedSession
+        from core import ArchivedSession
 
         # 添加废纸篓数据
         self.storage.archive_session("delete-test-1", "trash")
@@ -2272,7 +2273,7 @@ class TestCmdListWithRemote(unittest.TestCase):
 
     def test_cmd_list_with_remote_hosts(self):
         """测试--remote参数有主机配置"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         import io
@@ -2325,7 +2326,7 @@ class TestCmdListWithRemote(unittest.TestCase):
     @unittest.skip("需要完整Provider初始化环境")
     def test_cmd_list_with_remote_flag(self):
         """测试--remote参数"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2356,7 +2357,7 @@ class TestCmdOpenEdgeCases(unittest.TestCase):
 
     def test_cmd_open_session_not_found(self):
         """测试open命令会话未找到"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2380,7 +2381,7 @@ class TestCmdOpenEdgeCases(unittest.TestCase):
 
     def test_cmd_open_multiple_match_mock(self):
         """测试open命令多个匹配（使用mock）"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.errors import MultipleMatchError
         from unittest.mock import patch, MagicMock
@@ -2411,7 +2412,7 @@ class TestCmdOpenEdgeCases(unittest.TestCase):
             host_id=None
         )
 
-        with patch('sessionflow.scan_sessions', return_value=mock_sessions):
+        with patch('cli.main.scan_sessions', return_value=mock_sessions):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -2423,7 +2424,7 @@ class TestCmdOpenEdgeCases(unittest.TestCase):
 
     def test_cmd_open_with_host_id(self):
         """测试open命令带--host参数"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         import io
@@ -2468,8 +2469,8 @@ class TestCmdOpenEdgeCases(unittest.TestCase):
         mock_factory = MagicMock()
         mock_factory.create.return_value = mock_provider
 
-        with patch('sessionflow.scan_sessions', return_value=[]):
-            with patch('sessionflow.find_session', return_value=mock_session):
+        with patch('cli.main.scan_sessions', return_value=[]):
+            with patch('cli.main.find_session', return_value=mock_session):
                 with patch('core.storage.get_storage', return_value=mock_storage):
                     with patch('providers.get_factory', return_value=mock_factory):
                         old_stdout = sys.stdout
@@ -2487,7 +2488,7 @@ class TestCmdRecoverAll(unittest.TestCase):
 
     def test_cmd_recover_no_session_id(self):
         """测试recover命令不带session_id显示所有"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2517,7 +2518,7 @@ class TestCmdProgressSet(unittest.TestCase):
 
     def test_cmd_progress_show_all(self):
         """测试显示所有任务进度"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2552,7 +2553,7 @@ class TestCmdBookmarkRemove(unittest.TestCase):
 
     def test_cmd_bookmark_remove_existing(self):
         """测试移除存在的书签"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -2592,7 +2593,7 @@ class TestCmdBookmarkAdd(unittest.TestCase):
 
     def test_cmd_bookmark_add_new(self):
         """测试添加新书签"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -2632,7 +2633,7 @@ class TestCmdBookmarkList(unittest.TestCase):
 
     def test_cmd_bookmark_list_empty(self):
         """测试空书签列表"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2653,7 +2654,7 @@ class TestCmdBookmarkList(unittest.TestCase):
 
     def test_cmd_bookmark_list_with_items(self):
         """测试有书签的列表"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -2689,7 +2690,7 @@ class TestCmdHost(unittest.TestCase):
 
     def test_cmd_host_list_empty(self):
         """测试空主机列表"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2717,7 +2718,7 @@ class TestCmdLink(unittest.TestCase):
 
     def test_cmd_link_session_to_req(self):
         """测试链接会话到需求"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -2755,7 +2756,7 @@ class TestCmdUnlink(unittest.TestCase):
 
     def test_cmd_unlink_session(self):
         """测试解除会话关联"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -2796,7 +2797,7 @@ class TestCmdWhichReq(unittest.TestCase):
 
     def test_cmd_which_req_no_link(self):
         """测试无关联需求的会话"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -2834,7 +2835,7 @@ class TestCmdReqShow(unittest.TestCase):
 
     def test_cmd_req_show_existing(self):
         """测试显示存在的需求"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2862,7 +2863,7 @@ class TestCmdReqList(unittest.TestCase):
 
     def test_cmd_req_list_empty(self):
         """测试空需求列表"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2882,7 +2883,7 @@ class TestCmdReqList(unittest.TestCase):
 
     def test_cmd_req_list_with_items(self):
         """测试有需求的列表"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2910,7 +2911,7 @@ class TestCmdReqArchive(unittest.TestCase):
 
     def test_cmd_req_archive_existing(self):
         """测试归档需求"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2939,7 +2940,7 @@ class TestCmdReqAdd(unittest.TestCase):
 
     def test_cmd_req_add_basic(self):
         """测试添加需求"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -2974,7 +2975,7 @@ class TestCmdReqEdit(unittest.TestCase):
 
     def test_cmd_req_edit_title(self):
         """测试编辑需求标题"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -3012,7 +3013,7 @@ class TestCmdHostAdd(unittest.TestCase):
 
     def test_cmd_host_add_basic(self):
         """测试添加远程主机"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -3044,7 +3045,7 @@ class TestCmdHostRemove(unittest.TestCase):
 
     def test_cmd_host_remove_existing(self):
         """测试移除存在的远程主机"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -3066,7 +3067,7 @@ class TestCmdHostRemove(unittest.TestCase):
 
     def test_cmd_host_remove_not_found(self):
         """测试移除不存在的远程主机"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -3092,7 +3093,7 @@ class TestCmdHostScan(unittest.TestCase):
 
     def test_cmd_host_scan_not_found(self):
         """测试扫描不存在的远程主机"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -3111,7 +3112,7 @@ class TestCmdHostScan(unittest.TestCase):
 
     def test_cmd_host_scan_with_mock_provider(self):
         """测试扫描存在的远程主机（使用mock）"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         import io
@@ -3160,7 +3161,7 @@ class TestCmdStatsWithMock(unittest.TestCase):
 
     def test_cmd_stats_session_not_found(self):
         """测试stats命令会话未找到"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -3178,7 +3179,7 @@ class TestCmdStatsWithMock(unittest.TestCase):
 
     def test_cmd_stats_no_log_path(self):
         """测试stats命令会话无log_path"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         import io
@@ -3191,8 +3192,8 @@ class TestCmdStatsWithMock(unittest.TestCase):
 
         args = Namespace(session_id="stats-no", select_first=True)
 
-        with patch('sessionflow.scan_all_sessions', return_value=[mock_session]):
-            with patch('sessionflow.find_session', return_value=mock_session):
+        with patch('cli.main.scan_all_sessions', return_value=[mock_session]):
+            with patch('cli.main.find_session', return_value=mock_session):
                 old_stdout = sys.stdout
                 sys.stdout = io.StringIO()
                 try:
@@ -3204,7 +3205,7 @@ class TestCmdStatsWithMock(unittest.TestCase):
 
     def test_cmd_stats_with_rich_panel(self):
         """测试stats命令Rich面板输出"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         from pathlib import Path
@@ -3230,8 +3231,8 @@ class TestCmdStatsWithMock(unittest.TestCase):
         args = Namespace(session_id="stats-ri", select_first=True)
 
         try:
-            with patch('sessionflow.scan_all_sessions', return_value=[mock_session]):
-                with patch('sessionflow.find_session', return_value=mock_session):
+            with patch('cli.main.scan_all_sessions', return_value=[mock_session]):
+                with patch('cli.main.find_session', return_value=mock_session):
                     old_stdout = sys.stdout
                     sys.stdout = io.StringIO()
                     try:
@@ -3253,7 +3254,7 @@ class TestCmdScanBasic(unittest.TestCase):
 
     def test_cmd_recover_basic(self):
         """测试基本recover命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -3280,7 +3281,7 @@ class TestCmdScanBasic(unittest.TestCase):
 
     def test_cmd_recover_with_copy(self):
         """测试recover命令带--copy参数"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -3314,7 +3315,7 @@ class TestCmdStatus(unittest.TestCase):
 
     def test_cmd_status_basic(self):
         """测试基本status命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -3335,7 +3336,7 @@ class TestCmdStatus(unittest.TestCase):
 
     def test_cmd_status_no_active(self):
         """测试status命令无活跃会话"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch
         import io
@@ -3345,7 +3346,7 @@ class TestCmdStatus(unittest.TestCase):
 
         # Mock无活跃会话
         mock_sessions = []
-        with patch('sessionflow.scan_sessions', return_value=mock_sessions):
+        with patch('cli.main.scan_sessions', return_value=mock_sessions):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -3357,7 +3358,7 @@ class TestCmdStatus(unittest.TestCase):
 
     def test_cmd_status_with_active(self):
         """测试status命令有活跃会话"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         import io
@@ -3371,7 +3372,7 @@ class TestCmdStatus(unittest.TestCase):
         mock_session.meta.status = "busy"
         mock_session.project_name = "active-project"
 
-        with patch('sessionflow.scan_sessions', return_value=[mock_session]):
+        with patch('cli.main.scan_sessions', return_value=[mock_session]):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -3387,7 +3388,7 @@ class TestCmdTasksWithSession(unittest.TestCase):
 
     def test_cmd_tasks_with_mock_session(self):
         """测试tasks命令有log_path"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         import io
@@ -3408,9 +3409,9 @@ class TestCmdTasksWithSession(unittest.TestCase):
 
         args = Namespace(session_id="tasks-log", select_first=True)
 
-        with patch('sessionflow.scan_all_sessions', return_value=[mock_session]):
-            with patch('sessionflow.find_session', return_value=mock_session):
-                with patch('sessionflow.get_session_tasks', return_value=mock_tasks):
+        with patch('cli.main.scan_all_sessions', return_value=[mock_session]):
+            with patch('cli.main.find_session', return_value=mock_session):
+                with patch('cli.main.get_session_tasks', return_value=mock_tasks):
                     old_stdout = sys.stdout
                     sys.stdout = io.StringIO()
                     try:
@@ -3426,7 +3427,7 @@ class TestCmdViewWithLogPath(unittest.TestCase):
 
     def test_cmd_view_with_mock_log(self):
         """测试view命令有log_path和内容"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         import io
@@ -3444,9 +3445,9 @@ class TestCmdViewWithLogPath(unittest.TestCase):
 
         args = Namespace(session_id="view-log", select_first=True, lines=10)
 
-        with patch('sessionflow.scan_all_sessions', return_value=[mock_session]):
-            with patch('sessionflow.find_session', return_value=mock_session):
-                with patch('sessionflow.parse_jsonl_file', return_value=mock_history):
+        with patch('cli.main.scan_all_sessions', return_value=[mock_session]):
+            with patch('cli.main.find_session', return_value=mock_session):
+                with patch('cli.main.parse_jsonl_file', return_value=mock_history):
                     old_stdout = sys.stdout
                     sys.stdout = io.StringIO()
                     try:
@@ -3462,7 +3463,7 @@ class TestCmdListFilters(unittest.TestCase):
 
     def test_cmd_list_with_project_filter(self):
         """测试--project参数"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         import io
@@ -3486,7 +3487,7 @@ class TestCmdListFilters(unittest.TestCase):
             verbose=False
         )
 
-        with patch('sessionflow.scan_sessions', return_value=mock_sessions):
+        with patch('cli.main.scan_sessions', return_value=mock_sessions):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -3498,7 +3499,7 @@ class TestCmdListFilters(unittest.TestCase):
 
     def test_cmd_list_with_status_filter(self):
         """测试--status参数"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from unittest.mock import patch, MagicMock
         import io
@@ -3522,7 +3523,7 @@ class TestCmdListFilters(unittest.TestCase):
             verbose=False
         )
 
-        with patch('sessionflow.scan_sessions', return_value=mock_sessions):
+        with patch('cli.main.scan_sessions', return_value=mock_sessions):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -3538,7 +3539,7 @@ class TestCmdScanAll(unittest.TestCase):
 
     def test_cmd_scan_all_sessions(self):
         """测试scan --all命令"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -3729,7 +3730,7 @@ class TestCmdReq(unittest.TestCase):
     def test_cmd_req_add(self):
         """测试添加需求"""
         from unittest.mock import patch
-        from sessionflow import cmd_req
+        from cli.main import cmd_req
 
         args = argparse.Namespace(
             req_cmd="add",
@@ -3743,7 +3744,7 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch sessionflow和core.storage中的get_storage引用
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             result = cmd_req(args)
 
@@ -3757,7 +3758,7 @@ class TestCmdReq(unittest.TestCase):
     def test_cmd_req_list_with_filters(self):
         """测试列出需求带过滤"""
         from unittest.mock import patch
-        from sessionflow import cmd_req
+        from cli.main import cmd_req
         import uuid
 
         # 使用唯一ID避免冲突
@@ -3778,7 +3779,7 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch两个位置
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             result = cmd_req(args)
 
@@ -3790,7 +3791,7 @@ class TestCmdReq(unittest.TestCase):
     def test_cmd_req_show(self):
         """测试显示需求详情"""
         from unittest.mock import patch
-        from sessionflow import cmd_req
+        from cli.main import cmd_req
         import uuid
 
         req = Requirement.create("显示测试需求", category="feature", priority="p2")
@@ -3805,7 +3806,7 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch两个位置
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             result = cmd_req(args)
         # 验证不返回错误
@@ -3814,7 +3815,7 @@ class TestCmdReq(unittest.TestCase):
     def test_cmd_req_edit(self):
         """测试编辑需求"""
         from unittest.mock import patch
-        from sessionflow import cmd_req
+        from cli.main import cmd_req
         import uuid
 
         req = Requirement.create("编辑测试需求", category="feature", priority="p2")
@@ -3831,7 +3832,7 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch两个位置
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             result = cmd_req(args)
 
@@ -3842,7 +3843,7 @@ class TestCmdReq(unittest.TestCase):
     def test_cmd_req_done(self):
         """测试完成需求"""
         from unittest.mock import patch
-        from sessionflow import cmd_req
+        from cli.main import cmd_req
         import uuid
 
         req = Requirement.create("完成测试需求", category="feature", priority="p2")
@@ -3855,7 +3856,7 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch两个位置
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             result = cmd_req(args)
 
@@ -4523,8 +4524,8 @@ class TestCmdView(unittest.TestCase):
             log_path=None,
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session):
+        with patch("cli.main.scan_all_sessions", return_value=[session]), \
+             patch("cli.main.find_session", return_value=session):
             result = cmd_view(args)
             # 没有日志路径应该返回None（没有显式返回值）
             self.assertIsNone(result)
@@ -4571,9 +4572,9 @@ class TestCmdNote(unittest.TestCase):
             project_name="test",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.scan_all_sessions", return_value=[session]), \
+             patch("cli.main.find_session", return_value=session), \
+             patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             result = cmd_note(args)
             self.assertIsNone(result)
@@ -4606,9 +4607,9 @@ class TestCmdNote(unittest.TestCase):
             project_name="test",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.scan_all_sessions", return_value=[session]), \
+             patch("cli.main.find_session", return_value=session), \
+             patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_note(args)
 
@@ -4647,7 +4648,7 @@ class TestCmdTask(unittest.TestCase):
         args.task_id = None
         args.task_id_pos = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_task(args)
 
@@ -4669,7 +4670,7 @@ class TestCmdTask(unittest.TestCase):
         args.task_id = None
         args.task_id_pos = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_task(args)  # 应该打印任务列表
 
@@ -4688,7 +4689,7 @@ class TestCmdTask(unittest.TestCase):
         args.field = None
         args.value = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_task(args)
 
@@ -4711,7 +4712,7 @@ class TestCmdTask(unittest.TestCase):
         args.field = None
         args.value = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_task(args)
 
@@ -4752,7 +4753,7 @@ class TestCmdProgress(unittest.TestCase):
         args.task_id = None
         args.set_progress = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_progress(args)  # 应该打印进度概览
 
@@ -4766,7 +4767,7 @@ class TestCmdProgress(unittest.TestCase):
         args.task_id = None
         args.set_progress = [task.id[:8], "75"]
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_progress(args)
 
@@ -4814,9 +4815,9 @@ class TestCmdBookmark(unittest.TestCase):
             project_name="test",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.scan_all_sessions", return_value=[session]), \
+             patch("cli.main.find_session", return_value=session), \
+             patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_bookmark(args)
 
@@ -4830,7 +4831,7 @@ class TestCmdBookmark(unittest.TestCase):
         args = Mock()
         args.bookmark_cmd = "list"
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_bookmark(args)  # 应该打印书签列表
 
@@ -4843,7 +4844,7 @@ class TestCmdBookmark(unittest.TestCase):
         args.bookmark_cmd = "remove"
         args.session_id = "test12345"
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_bookmark(args)
 
@@ -5133,7 +5134,7 @@ class TestCmdArchive(unittest.TestCase):
 
     def test_archive_session_cmd(self):
         """测试归档会话命令"""
-        from sessionflow import cmd_archive
+        from cli.main import cmd_archive
 
         args = Mock()
         args.session_id = "test12345"
@@ -5153,9 +5154,9 @@ class TestCmdArchive(unittest.TestCase):
             topic="测试",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.scan_all_sessions", return_value=[session]), \
+             patch("cli.main.find_session", return_value=session), \
+             patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_archive(args)
 
@@ -5187,7 +5188,7 @@ class TestCmdRestore(unittest.TestCase):
 
     def test_restore_session_cmd(self):
         """测试恢复会话命令"""
-        from sessionflow import cmd_restore
+        from cli.main import cmd_restore
 
         session_id = "test12345-def6-7890-abcd-ef1234567890"
         # 先归档会话
@@ -5200,7 +5201,7 @@ class TestCmdRestore(unittest.TestCase):
         args = Mock()
         args.session_id = session_id[:8]
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_restore(args)
 
@@ -5232,7 +5233,7 @@ class TestCmdTrash(unittest.TestCase):
 
     def test_trash_session_cmd(self):
         """测试废纸篓会话命令"""
-        from sessionflow import cmd_trash
+        from cli.main import cmd_trash
 
         args = Mock()
         args.session_id = "test12345"
@@ -5252,9 +5253,9 @@ class TestCmdTrash(unittest.TestCase):
             topic="测试",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.scan_all_sessions", return_value=[session]), \
+             patch("cli.main.find_session", return_value=session), \
+             patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_trash(args)
 
@@ -5287,7 +5288,7 @@ class TestCmdReq(unittest.TestCase):
 
     def test_req_list(self):
         """测试需求列表"""
-        from sessionflow import cmd_req
+        from cli.main import cmd_req
 
         # 创建测试需求
         req = Requirement.create("测试需求")
@@ -5300,7 +5301,7 @@ class TestCmdReq(unittest.TestCase):
         args.status = None
         args.priority = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
+        with patch("cli.main.get_storage", return_value=self.storage), \
              patch("core.storage.get_storage", return_value=self.storage):
             cmd_req(args)  # 应该打印需求列表
 
@@ -5772,7 +5773,7 @@ class TestCmdStatus(unittest.TestCase):
 
     def test_cmd_status_output(self):
         """测试status命令输出"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -5795,7 +5796,7 @@ class TestCmdRecoverWithSession(unittest.TestCase):
 
     def test_cmd_recover_with_valid_session(self):
         """测试recover命令带有效session_id"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         from core.scanner import scan_sessions
         import io
@@ -5823,7 +5824,7 @@ class TestCmdRecoverWithSession(unittest.TestCase):
 
     def test_cmd_recover_with_invalid_session(self):
         """测试recover命令带无效session_id"""
-        import sessionflow
+        import importlib; sessionflow = importlib.import_module('cli.main')
         from argparse import Namespace
         import io
         import sys
@@ -6016,7 +6017,7 @@ class TestRequirementLink(unittest.TestCase):
 
     def test_save_requirement_links(self):
         """测试保存需求链接"""
-        from core.storage import RequirementSessionLink
+        from core import RequirementSessionLink
 
         req = Requirement.create("测试需求", category="feature", priority="p1")
         self.storage.add_requirement(req)
