@@ -219,7 +219,12 @@ class TestSecurity:
         cmd = provider._build_ssh_cmd(host, ["ls", "-la"])
         assert isinstance(cmd, list)
         assert cmd[0] == "ssh"
-        assert cmd[1] == "testuser@192.168.1.1"
+        # 实际格式: ['ssh', '-o', 'RemoteCommand=none', 'user@host', 'ls', '-la']
+        assert cmd[1] == "-o"
+        assert cmd[2] == "RemoteCommand=none"
+        assert cmd[3] == "testuser@192.168.1.1"
+        assert cmd[4] == "ls"
+        assert cmd[5] == "-la"
 
     def test_no_shell_execution(self):
         """测试不使用shell执行"""
@@ -678,7 +683,7 @@ class TestClaudeProviderAdvanced:
     def test_recover_remote_session_no_tmux(self):
         """测试远程会话恢复（无tmux）"""
         from core.models import SessionMeta, SessionRecord
-        from unittest.mock import patch
+        from unittest.mock import patch, MagicMock
 
         provider = ClaudeProvider()
         session = SessionRecord(
@@ -687,9 +692,12 @@ class TestClaudeProviderAdvanced:
         )
         host = RemoteHost(id="test", name="Test", hostname="192.168.1.1", user="test")
 
-        # Mock无tmux
+        # Mock无tmux，Mock ITerm2Terminal类
+        mock_terminal = MagicMock()
+        mock_terminal.open_session.return_value = True
         with patch.object(provider, '_find_existing_tmux', return_value=None):
-            with patch('providers.terminals.iterm2.ITerm2Terminal.open_session_chain', return_value=True):
+            # ITerm2Terminal在方法内部导入，需要patch正确的路径
+            with patch('providers.terminals.iterm2.ITerm2Terminal', return_value=mock_terminal):
                 result = provider.recover_remote_session(session, host)
                 assert result is True
 

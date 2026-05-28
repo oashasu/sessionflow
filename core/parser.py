@@ -90,7 +90,12 @@ def get_session_tasks(jsonl_path: Path) -> list:
 
 
 def get_jsonl_summary(jsonl_path: Path) -> Dict[str, Any]:
-    """获取JSONL完整摘要（主题、统计、任务）"""
+    """获取JSONL完整摘要（主题、统计、任务）
+
+    支持两种格式：
+    - Claude格式: type=user/assistant
+    - Codex格式: type=response_item (input_text/output_text)
+    """
     stats = {
         "total_events": 0,
         "tool_calls": 0,
@@ -112,10 +117,16 @@ def get_jsonl_summary(jsonl_path: Path) -> Dict[str, Any]:
         event_type = event.get("type", "")
 
         # 提取cwd（从第一个包含cwd的事件）
-        if not cwd and "cwd" in event:
-            cwd = event.get("cwd")
+        if not cwd:
+            # Claude格式
+            if "cwd" in event:
+                cwd = event.get("cwd")
+            # Codex格式
+            if event_type == "session_meta":
+                payload = event.get("payload", {})
+                cwd = payload.get("cwd")
 
-        # 统计事件类型
+        # Claude格式事件处理
         if event_type == "user":
             stats["user_messages"] += 1
             # 提取第一条用户消息
@@ -148,6 +159,25 @@ def get_jsonl_summary(jsonl_path: Path) -> Dict[str, Any]:
                             stats["bash_count"] += 1
         elif event_type == "system":
             stats["system_messages"] += 1
+
+        # Codex格式事件处理
+        elif event_type == "response_item":
+            payload = event.get("payload", {})
+            payload_type = payload.get("type", "")
+            content = payload.get("content", [])
+
+            if payload_type == "message" and isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict):
+                        item_type = item.get("type", "")
+                        if item_type == "input_text":
+                            stats["user_messages"] += 1
+                            if not first_user_msg:
+                                first_user_msg = item.get("text", "")[:200]
+                        elif item_type == "output_text":
+                            stats["assistant_messages"] += 1
+                        elif item_type == "tool_call":
+                            stats["tool_calls"] += 1
 
         # 提取主题
         if event_type == "ai-title" and not topic:

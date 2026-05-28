@@ -194,8 +194,14 @@ class BaseSessionProvider(ABC, SessionProvider):
             return remote_cmd
 
         # 使用列表形式避免shell注入
+        # 添加SSH选项绕过SSH配置中的限制
         ssh_target = host.ssh_alias or f"{host.user}@{host.hostname}"
-        return ["ssh", ssh_target] + remote_cmd
+        return [
+            "ssh",
+            "-o", "RemoteCommand=none",
+            "-o", "RequestTTY=no",
+            ssh_target
+        ] + remote_cmd
 
     def _exec_ssh_cmd(
         self,

@@ -26,6 +26,7 @@ class RemoteHostConfig:
     ssh_alias: Optional[str] = None
     claude_dir: str = "~/.claude/projects/"
     tmux_prefix: str = "claude-"
+    stats_script: str = "~/sandbox/scripts/sessionflow_stats.py"  # 远程统计脚本路径
     enabled: bool = True
     last_scan_at: int = 0
 
@@ -45,6 +46,7 @@ class Task:
     status: str = "todo"  # todo, in_progress, done
     priority: str = "medium"  # high, medium, low
     linked_session_id: Optional[str] = None
+    requirement_id: Optional[str] = None  # 所属需求ID（三级追溯：Requirement→Session→Task）
     progress: int = 0  # 0-100
     created_at: int = 0
     updated_at: int = 0
@@ -130,7 +132,7 @@ class RequirementSessionLink:
     """需求-会话关联"""
     requirement_id: str                  # 需求ID
     session_id: str                      # Claude session ID
-    role: str = "secondary"              # primary/secondary/reference
+    role: str = "辅会话"              # 主会话/辅会话/参考会话
     linked_at: int = 0                   # 关联时间
     notes: str = ""                      # 该session贡献说明
 
@@ -172,20 +174,64 @@ class ArchivedSession:
 class StorageProtocol(Protocol):
     """存储层协议"""
 
+    # Tasks
     def load_tasks(self) -> List[Task]: ...
     def save_tasks(self, tasks: List[Task]) -> None: ...
+
+    # Notes
     def load_notes(self) -> Dict[str, SessionNote]: ...
     def save_notes(self, notes: Dict[str, SessionNote]) -> None: ...
+
+    # Bookmarks
     def load_bookmarks(self) -> List[str]: ...
     def save_bookmarks(self, bookmarks: List[str]) -> None: ...
+
+    # Config
     def load_config(self) -> Dict[str, Any]: ...
     def save_config(self, config: Dict[str, Any]) -> None: ...
+
+    # Remote Hosts
     def load_remote_hosts(self) -> List[RemoteHostConfig]: ...
     def save_remote_hosts(self, hosts: List[RemoteHostConfig]) -> None: ...
+    def add_remote_host(self, host: RemoteHostConfig) -> None: ...
+    def remove_remote_host(self, host_id: str) -> bool: ...
+    def get_remote_host(self, host_id: str) -> Optional[RemoteHostConfig]: ...
+
+    # Requirements
     def load_requirements(self) -> List[Requirement]: ...
     def save_requirements(self, requirements: List[Requirement]) -> None: ...
+    def add_requirement(self, requirement: Requirement) -> None: ...
+    def get_requirement(self, req_id: str) -> Optional[Requirement]: ...
+    def update_requirement(self, req_id: str, **kwargs) -> bool: ...
+    def remove_requirement(self, req_id: str) -> bool: ...
+
+    # Requirement Session Links
     def load_requirement_links(self) -> List[RequirementSessionLink]: ...
     def save_requirement_links(self, links: List[RequirementSessionLink]) -> None: ...
+    def link_session_to_requirement(self, link: RequirementSessionLink) -> None: ...
+    def unlink_session(self, session_id: str) -> bool: ...
+    def get_session_requirement(self, session_id: str) -> Optional[RequirementSessionLink]: ...
+    def get_requirement_sessions(self, req_id: str) -> List[RequirementSessionLink]: ...
+
+    # Archived Sessions
+    def load_archived_sessions(self) -> List[ArchivedSession]: ...
+    def save_archived_sessions(self, sessions: List[ArchivedSession]) -> None: ...
+    def archive_session(self, session_id: str, archive_type: str = "archived", **kwargs) -> ArchivedSession: ...
+    def restore_session(self, session_id: str) -> bool: ...
+    def get_archived_session(self, session_id: str) -> Optional[ArchivedSession]: ...
+    def get_archived_by_type(self, archive_type: str) -> List[ArchivedSession]: ...
+    def delete_trash_session(self, session_id: str) -> bool: ...
+
+    # Stats Cache
+    def load_stats_cache(self) -> Dict[str, Dict[str, Any]]: ...
+    def save_stats_cache(self, cache: Dict[str, Dict[str, Any]]) -> None: ...
+    def get_cached_stats(self, session_id: str) -> Optional[Dict[str, Any]]: ...
+    def update_stats_cache(self, session_id: str, stats: Dict[str, Any]) -> None: ...
+
+    # Remote Sessions Cache
+    def get_cached_remote_sessions(self, host_id: str) -> Optional[List[Dict[str, Any]]]: ...
+    def save_cached_remote_sessions(self, host_id: str, sessions: List[Dict[str, Any]]) -> None: ...
+    def clear_remote_sessions_cache(self, host_id: str) -> None: ...
 
 
 class JSONStorage:
@@ -450,14 +496,142 @@ class JSONStorage:
         self.save_archived_sessions(new_sessions)
         return True
 
+    # ========== Stats Cache（JSON特有方法，用于迁移） ==========
 
-# 全局存储实例
-_storage: Optional[JSONStorage] = None
+    def load_stats_cache(self) -> Dict[str, Dict[str, Any]]:
+        """加载统计缓存（JSON方法）"""
+        data = self._read_json("stats_cache.json", {"cache": {}, "updated_at": 0})
+        return data.get("cache", {})
+
+    def save_stats_cache(self, cache: Dict[str, Dict[str, Any]]) -> None:
+        """保存统计缓存（JSON方法）"""
+        self._write_json("stats_cache.json", {
+            "cache": cache,
+            "updated_at": int(datetime.now().timestamp())
+        })
+
+    def get_cached_stats(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """获取缓存的统计（JSON方法 - 无TTL检查）"""
+        cache = self.load_stats_cache()
+        entry = cache.get(session_id)
+        if entry:
+            return entry.get('stats')
+        return None
+
+    def update_stats_cache(self, session_id: str, stats: Dict[str, Any]) -> None:
+        """更新单个会话的统计缓存（JSON方法）"""
+        cache = self.load_stats_cache()
+        cache[session_id] = {
+            'stats': stats,
+            'cached_at': datetime.now().timestamp()
+        }
+        self.save_stats_cache(cache)
+
+    # ========== Remote Sessions Cache（JSON方法 - 用于迁移） ==========
+
+    def get_cached_remote_sessions(self, host_id: str) -> Optional[List[Dict[str, Any]]]:
+        """获取缓存的远程会话列表（JSON方法 - 无TTL检查）"""
+        data = self._read_json("remote_sessions_cache.json", {"cache": {}})
+        entry = data.get("cache", {}).get(host_id)
+        if entry:
+            return entry.get('sessions')
+        return None
+
+    def save_cached_remote_sessions(self, host_id: str, sessions: List[Dict[str, Any]]) -> None:
+        """缓存远程会话列表（JSON方法）"""
+        data = self._read_json("remote_sessions_cache.json", {"cache": {}})
+        data["cache"][host_id] = {
+            'sessions': sessions,
+            'cached_at': datetime.now().timestamp()
+        }
+        self._write_json("remote_sessions_cache.json", data)
+
+    def clear_remote_sessions_cache(self, host_id: str) -> None:
+        """清除指定主机的会话缓存（JSON方法）"""
+        data = self._read_json("remote_sessions_cache.json", {"cache": {}})
+        if host_id in data.get("cache", {}):
+            del data["cache"][host_id]
+            self._write_json("remote_sessions_cache.json", data)
 
 
-def get_storage() -> JSONStorage:
-    """获取全局存储实例"""
-    global _storage
+# 全局存储实例（SQLite优先）
+_storage: Optional["SQLiteStorage"] = None
+_migrated: bool = False
+
+
+def get_storage() -> "SQLiteStorage":
+    """获取全局存储实例（SQLite）
+
+    自动迁移：首次调用时检测JSON文件存在则自动迁移到SQLite
+    """
+    global _storage, _migrated
     if _storage is None:
-        _storage = JSONStorage()
+        from .sqlite_storage import SQLiteStorage
+        _storage = SQLiteStorage()
+        # 自动迁移检测
+        if not _migrated:
+            _migrated = True
+            _auto_migrate_from_json(_storage)
     return _storage
+
+
+def _auto_migrate_from_json(sqlite_storage: "SQLiteStorage") -> None:
+    """自动从JSON迁移到SQLite（如果JSON文件存在且未迁移）"""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # 检查是否已完成迁移（通过config表标记）
+    config = sqlite_storage.load_config()
+    if config.get("_migration_completed"):
+        return  # 已迁移，跳过
+
+    # 检查是否有需要迁移的JSON文件
+    json_files = [
+        "tasks.json", "notes.json", "bookmarks.json",
+        "config.json", "remote_hosts.json", "requirements.json",
+        "requirement_sessions.json", "archived_sessions.json",
+        "stats_cache.json"  # 统计缓存
+    ]
+    has_json_data = any((STORAGE_DIR / f).exists() for f in json_files)
+
+    if has_json_data:
+        try:
+            json_storage = JSONStorage()
+            sqlite_storage.migrate_from_json(json_storage)
+            # 标记迁移完成
+            config["_migration_completed"] = True
+            sqlite_storage.save_config(config)
+            logger.info("已自动迁移JSON数据到SQLite数据库")
+            # 可选：备份或删除JSON文件
+            # 这里保留JSON文件作为备份，用户可手动删除
+        except Exception as e:
+            logger.warning(f"JSON迁移失败（已存在SQLite数据则跳过）: {e}")
+
+
+# ========== 统计缓存（代理到SQLiteStorage） ==========
+
+STATS_CACHE_TTL = 86400  # 24小时缓存有效期（秒）
+
+
+def load_stats_cache() -> Dict[str, Dict[str, Any]]:
+    """加载统计缓存"""
+    storage = get_storage()
+    return storage.load_stats_cache()
+
+
+def save_stats_cache(cache: Dict[str, Dict[str, Any]]) -> None:
+    """保存统计缓存"""
+    storage = get_storage()
+    storage.save_stats_cache(cache)
+
+
+def get_cached_stats(session_id: str) -> Optional[Dict[str, Any]]:
+    """获取缓存的统计（如果有效）"""
+    storage = get_storage()
+    return storage.get_cached_stats(session_id)
+
+
+def update_stats_cache(session_id: str, stats: Dict[str, Any]) -> None:
+    """更新单个会话的统计缓存"""
+    storage = get_storage()
+    storage.update_stats_cache(session_id, stats)

@@ -43,7 +43,7 @@ class Requirement:
 class RequirementSessionLink:
     requirement_id: str     # 需求ID
     session_id: str         # Claude session ID
-    role: str               # primary/secondary/reference
+    role: str               # 主会话/辅会话/参考会话
     linked_at: int          # 关联时间
     notes: str              # 该session贡献说明
 ```
@@ -106,7 +106,7 @@ sessionflow req archive REQ-001
 
 ```bash
 # 将当前session关联到需求
-sessionflow link <session-id> REQ-001 [--role primary]
+sessionflow link <session-id> REQ-001 [--role 主会话]
 
 # 解除关联
 sessionflow unlink <session-id>

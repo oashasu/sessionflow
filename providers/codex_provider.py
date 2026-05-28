@@ -2,6 +2,7 @@
 
 import json
 import logging
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
@@ -95,6 +96,18 @@ class CodexProvider(BaseSessionProvider):
                         # 从session_id映射到cwd（需要扫描session文件）
                         cwd, log_path = self._find_cwd_for_session(session_id)
 
+                        # 从session文件获取subagent信息
+                        is_subagent = False
+                        agent_nick = None
+                        agent_role = None
+                        model_provider = None
+                        parent_session_id = None
+                        git_branch = None
+                        if log_path:
+                            session_data = self._parse_session_file(Path(log_path))
+                            if session_data:
+                                is_subagent, agent_nick, agent_role, model_provider, parent_session_id, git_branch = self._get_agent_info(session_data)
+
                         meta = SessionMeta(
                             session_id=session_id,
                             cwd=cwd,
@@ -103,6 +116,13 @@ class CodexProvider(BaseSessionProvider):
                             updated_at=updated_at,
                         )
 
+                        # 如果是subagent，topic显示agent信息
+                        if is_subagent and agent_nick:
+                            if thread_name:
+                                thread_name = f"[{agent_nick}] {thread_name}"
+                            else:
+                                thread_name = f"[{agent_nick}] {agent_role or 'subagent'}"
+
                         record = SessionRecord(
                             meta=meta,
                             project_name=extract_project_name(cwd) if cwd else "unknown",
@@ -110,6 +130,12 @@ class CodexProvider(BaseSessionProvider):
                             recovery_cmd=self.generate_recovery_cmd(session_id, cwd),
                             topic=thread_name,
                             tool_type="codex",
+                            is_subagent=is_subagent,
+                            agent_nickname=agent_nick,
+                            agent_role=agent_role,
+                            model_provider=model_provider,
+                            parent_session_id=parent_session_id,
+                            git_branch=git_branch,
                         )
                         sessions.append(record)
                     except json.JSONDecodeError:
@@ -169,6 +195,15 @@ class CodexProvider(BaseSessionProvider):
                                 # 尝试获取thread_name
                                 thread_name = self._extract_thread_name(jsonl_file)
 
+                                # 检测subagent
+                                is_subagent, agent_nick, agent_role, model_provider, parent_session_id, git_branch = self._get_agent_info(session_data)
+                                # 如果是subagent，topic显示agent信息
+                                if is_subagent and agent_nick:
+                                    if thread_name:
+                                        thread_name = f"[{agent_nick}] {thread_name}"
+                                    else:
+                                        thread_name = f"[{agent_nick}] {agent_role or 'subagent'}"
+
                                 record = SessionRecord(
                                     meta=meta,
                                     project_name=extract_project_name(cwd) if cwd else "unknown",
@@ -176,6 +211,13 @@ class CodexProvider(BaseSessionProvider):
                                     recovery_cmd=self.generate_recovery_cmd(session_id, cwd),
                                     topic=thread_name,
                                     tool_type="codex",
+                                    is_subagent=is_subagent,
+                                    entrypoint=session_data.get("originator", "codex-tui"),
+                                    agent_nickname=agent_nick,
+                                    agent_role=agent_role,
+                                    model_provider=model_provider,
+                                    parent_session_id=parent_session_id,
+                                    git_branch=git_branch,
                                 )
                                 sessions.append(record)
                         except Exception:
@@ -184,7 +226,7 @@ class CodexProvider(BaseSessionProvider):
         return sessions
 
     def _parse_session_file(self, jsonl_path: Path) -> Optional[Dict]:
-        """解析session文件的session_meta行"""
+        """解析session文件的session_meta行，返回完整payload"""
         try:
             with open(jsonl_path, encoding="utf-8") as f:
                 # 只读第一行获取session_meta
@@ -192,10 +234,41 @@ class CodexProvider(BaseSessionProvider):
                 if first_line:
                     data = json.loads(first_line.strip())
                     if data.get("type") == "session_meta":
-                        return data.get("payload", {})
+                        payload = data.get("payload", {})
+                        # 添加原始数据以获取更多字段
+                        payload["_raw"] = data
+                        return payload
         except Exception:
             pass
         return None
+
+    def _is_subagent_session(self, session_data: Dict) -> bool:
+        """判断是否是subagent会话"""
+        # 方法1: 检查thread_source字段
+        thread_source = session_data.get("thread_source", "")
+        if thread_source == "subagent":
+            return True
+
+        # 方法2: 检查source.subagent字段
+        source = session_data.get("source", {})
+        if source and "subagent" in source:
+            return True
+
+        # 方法3: 检查agent_nickname/agent_role（子agent会有这些字段）
+        if session_data.get("agent_nickname") or session_data.get("agent_role"):
+            return True
+
+        return False
+
+    def _get_agent_info(self, session_data: Dict) -> tuple[bool, Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]:
+        """获取agent信息：是否subagent, nickname, role, model_provider, parent_session_id, git_branch"""
+        is_subagent = self._is_subagent_session(session_data)
+        nickname = session_data.get("agent_nickname")
+        role = session_data.get("agent_role")
+        model_provider = session_data.get("model_provider")
+        parent_session_id = session_data.get("parent_session_id")
+        git_branch = session_data.get("git_branch")
+        return is_subagent, nickname, role, model_provider, parent_session_id, git_branch
 
     def _extract_thread_name(self, jsonl_path: Path) -> Optional[str]:
         """从session文件提取thread_name（第一用户消息）"""
@@ -241,11 +314,14 @@ class CodexProvider(BaseSessionProvider):
 
         sessions = []
 
-        # 安全构建命令
-        session_dir = self._safe_quote(self.tool_info.session_dir)
-        find_cmd = f"find {session_dir} -name '*.jsonl' -type f"
+        # 使用单字符串命令格式，避免引号嵌套问题
+        find_cmd = 'find ~/.codex/sessions -name "*.jsonl" -type f'
 
-        result = self._exec_ssh_cmd(host, ["sh", "-c", find_cmd], timeout=30)
+        # 直接传递命令字符串给SSH，不使用sh -c包装
+        ssh_target = host.ssh_alias or f"{host.user}@{host.hostname}"
+        full_cmd = ["ssh", "-o", "RemoteCommand=none", "-o", "RequestTTY=no", ssh_target, find_cmd]
+
+        result = subprocess.run(full_cmd, capture_output=True, text=True, timeout=30)
 
         if result.returncode != 0:
             logger.warning(f"Remote scan failed: {result.stderr}")

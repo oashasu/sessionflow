@@ -27,6 +27,12 @@ class SessionRecord:
     tool_type: str = "claude"  # 工具类型: claude/codex
     is_subagent: bool = False  # 是否为子agent会话
     entrypoint: Optional[str] = None  # 会话入口: cli/sdk-cli
+    # Subagent详细信息
+    agent_nickname: Optional[str] = None  # Agent昵称
+    agent_role: Optional[str] = None  # Agent角色
+    model_provider: Optional[str] = None  # 模型提供商
+    parent_session_id: Optional[str] = None  # 父会话ID
+    git_branch: Optional[str] = None  # Git分支
 
     @property
     def short_id(self) -> str:

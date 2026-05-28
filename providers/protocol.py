@@ -46,6 +46,7 @@ class RemoteHost:
     ssh_alias: Optional[str] = None    # SSH别名（如 claw-tmux）
     claude_dir: str = "~/.claude/projects/"
     tmux_prefix: str = "claude-"
+    stats_script: str = "~/sandbox/scripts/sessionflow_stats.py"  # 远程统计脚本路径
     enabled: bool = True
     last_scan_at: int = 0
 

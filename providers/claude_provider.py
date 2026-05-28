@@ -107,6 +107,7 @@ class ClaudeProvider(BaseSessionProvider):
         """扫描历史会话（projects目录JSONL）"""
         from core.models import SessionMeta, SessionRecord, extract_project_name
         from core.parser import get_jsonl_summary
+        from core.storage import update_stats_cache
 
         sessions = []
 
@@ -140,6 +141,9 @@ class ClaudeProvider(BaseSessionProvider):
                     # 使用JSONL中的真实cwd（如果有），否则使用解码的cwd
                     cwd = summary.get("cwd") or default_cwd
 
+                    # 更新统计缓存
+                    update_stats_cache(session_id, stats)
+
                     meta = SessionMeta(
                         session_id=session_id,
                         cwd=cwd,
@@ -168,10 +172,12 @@ class ClaudeProvider(BaseSessionProvider):
     def _scan_remote_impl(self, host: RemoteHost) -> List[Any]:
         """SSH扫描远程Claude会话（安全实现）"""
         from core.models import SessionMeta, SessionRecord, extract_project_name
+        from core.storage import update_stats_cache
+        import json
 
         sessions = []
 
-        # 使用stat获取mtime和路径，格式: mtime|path
+        # 1. 使用stat获取mtime和路径，格式: mtime|path
         find_cmd = "find $HOME/.claude/projects/ -name '*.jsonl' -type f -exec stat -f '%m|%N' {} \\;"
         result = self._exec_ssh_cmd(host, [find_cmd], timeout=60)
 
@@ -179,46 +185,78 @@ class ClaudeProvider(BaseSessionProvider):
             logger.warning(f"Remote scan failed: {result.stderr}")
             return sessions
 
+        # 2. 收集所有 JSONL 路径
+        jsonl_paths = []
+        path_info = {}  # session_id -> {mtime, jsonl_path, cwd}
+
         for line in result.stdout.strip().split("\n"):
             if not line or "|" not in line:
                 continue
 
             try:
-                # 解析格式: mtime|path
                 parts = line.strip().split("|")
                 if len(parts) < 2:
                     continue
 
-                mtime = int(parts[0]) * 1000  # 转换为毫秒
+                mtime = int(parts[0]) * 1000
                 jsonl_path = parts[1]
-
-                # 解析远程路径格式
-                # ~/.claude/projects/-Users-xxx-project/session-id.jsonl
-                path_parts = jsonl_path.split("/")
                 session_id = Path(jsonl_path).stem
-                dir_encoded = path_parts[-2] if len(path_parts) >= 2 else ""
-
+                dir_encoded = jsonl_path.split("/")[-2] if len(jsonl_path.split("/")) >= 2 else ""
                 cwd = self._decode_project_dir(dir_encoded)
 
-                meta = SessionMeta(
-                    session_id=session_id,
-                    cwd=cwd,
-                    status="remote",
-                    started_at=0,
-                    updated_at=mtime,
-                )
-
-                record = SessionRecord(
-                    meta=meta,
-                    project_name=extract_project_name(cwd),
-                    log_path=jsonl_path,
-                    recovery_cmd=self.generate_recovery_cmd(session_id, cwd),
-                    topic=None,
-                    tool_type="claude",
-                )
-                sessions.append(record)
+                jsonl_paths.append(jsonl_path)
+                path_info[session_id] = {
+                    "mtime": mtime,
+                    "jsonl_path": jsonl_path,
+                    "cwd": cwd
+                }
             except Exception:
                 continue
+
+        # 3. 批量调用远程统计脚本获取统计和主题
+        stats_data = {}
+        if jsonl_paths and host.stats_script:
+            # 构建命令：python3 script --multi path1 path2 ...
+            stats_cmd = f"python3 {host.stats_script} --multi " + " ".join(jsonl_paths[:50])  # 限制每次50个避免命令过长
+            stats_result = self._exec_ssh_cmd(host, [stats_cmd], timeout=120)
+
+            if stats_result.returncode == 0:
+                try:
+                    stats_data = json.loads(stats_result.stdout.strip())
+                except json.JSONDecodeError:
+                    logger.warning(f"Remote stats parse failed")
+            else:
+                logger.warning(f"Remote stats script failed: {stats_result.stderr}")
+
+        # 4. 构建 SessionRecord
+        for session_id, info in path_info.items():
+            session_stats = stats_data.get(session_id, {})
+            topic = session_stats.get("topic")
+            stats = session_stats.get("stats", {})
+            cwd = session_stats.get("cwd") or info["cwd"]
+
+            # 更新统计缓存
+            if stats:
+                update_stats_cache(session_id, stats)
+
+            meta = SessionMeta(
+                session_id=session_id,
+                cwd=cwd,
+                status="remote",
+                started_at=0,
+                updated_at=info["mtime"],
+            )
+
+            record = SessionRecord(
+                meta=meta,
+                project_name=extract_project_name(cwd),
+                log_path=info["jsonl_path"],
+                recovery_cmd=self.generate_recovery_cmd(session_id, cwd),
+                topic=topic,
+                tool_type="claude",
+            )
+            record.stats = stats
+            sessions.append(record)
 
         return sessions
 
@@ -355,14 +393,11 @@ class ClaudeProvider(BaseSessionProvider):
         terminal = ITerm2Terminal()
         ssh_target = host.ssh_alias or f"{host.user}@{host.hostname}"
 
-        # 使用命令链：先SSH连接，再在远程执行tmux attach
-        # 这样确保tmux attach在远程shell内执行
-        cmds = [
-            f"ssh {ssh_target}",
-            f"tmux attach -t {tmux_info.tmux_session_name}"
-        ]
+        # 使用ssh -t直接attach到远程tmux
+        # -t 参数强制分配伪终端（tmux attach需要）
+        ssh_cmd = f"ssh -t {ssh_target} \"tmux attach -t {tmux_info.tmux_session_name}\""
 
-        return terminal.open_session_chain(str(Path.home()), cmds)
+        return terminal.open_session(str(Path.home()), ssh_cmd)
 
     def _create_and_recover(
         self,
@@ -378,15 +413,21 @@ class ClaudeProvider(BaseSessionProvider):
         terminal = ITerm2Terminal()
         ssh_target = host.ssh_alias or f"{host.user}@{host.hostname}"
         session_short_id = session.meta.session_id[:8]
+        recovery_cmd = self.generate_recovery_cmd(session.meta.session_id, session.meta.cwd)
 
-        # SSH连接 -> 创建tmux -> cd -> 恢复
-        cmds = [
-            f"ssh {ssh_target}",
-            f"tmux new -s 'claude-{session_short_id}' -c '{session.meta.cwd}'",
-            self.generate_recovery_cmd(session.meta.session_id, session.meta.cwd)
-        ]
+        # 使用ssh -t直接在远程创建tmux并运行claude
+        # -t 参数强制分配伪终端（tmux需要）
+        # tmux new-session 创建新session并立即attach
+        # \; 分隔tmux命令，在tmux内执行claude --resume
+        tmux_name = f"claude-{session_short_id}"
+        cwd = session.meta.cwd
 
-        return terminal.open_session_chain(session.meta.cwd, cmds)
+        # 方案：SSH -t -> 创建tmux -> 在tmux内执行claude
+        # tmux new-session -s name -c cwd 创建并attach
+        # 使用send-keys在tmux内发送恢复命令
+        ssh_cmd = f"ssh -t {ssh_target} \"tmux new-session -s '{tmux_name}' -c '{cwd}' \\; send-keys '{recovery_cmd}' Enter\""
+
+        return terminal.open_session(str(Path.home()), ssh_cmd)
 
     # ========== 会话详情 ==========
 
