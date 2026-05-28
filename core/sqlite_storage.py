@@ -513,6 +513,26 @@ class SQLiteStorage:
         conn.commit()
         return deleted
 
+    def delete_requirement_with_links(self, req_id: str) -> bool:
+        """级联删除需求及其关联链接（带事务回滚）
+
+        Args:
+            req_id: 需求ID
+
+        Returns:
+            是否删除成功
+
+        Raises:
+            Exception: 删除失败时抛出异常，事务自动回滚
+        """
+        with self.transaction() as conn:
+            cursor = conn.cursor()
+            # 先删除关联链接
+            cursor.execute("DELETE FROM requirement_session_links WHERE requirement_id = ?", (req_id,))
+            # 再删除需求
+            cursor.execute("DELETE FROM requirements WHERE id = ?", (req_id,))
+            return cursor.rowcount > 0
+
     # ========== Requirement Session Links ==========
 
     def load_requirement_links(self) -> List[RequirementSessionLink]:

@@ -1,7 +1,6 @@
 """Sessions Blueprint - Session management API endpoints"""
 
 from flask import Blueprint, jsonify, request
-import re
 
 from core.scanner import scan_sessions
 from core.parser import parse_jsonl_file
@@ -348,68 +347,7 @@ def api_session_requirement(session_id):
 @sessions_bp.route('/sessions/analyze')
 def api_sessions_analyze():
     """全量分析会话，建议需求"""
-    # 获取所有主会话
-    all_sessions = get_storage().get_all_sessions()
-    main_sessions = [s for s in all_sessions if not s.get('is_subagent')]
-
-    # 按项目分组
-    project_groups = {}
-    for s in main_sessions:
-        project = s.get('project_name', 'unknown')
-        if project not in project_groups:
-            project_groups[project] = []
-        project_groups[project].append(s)
-
-    # 分析每个项目，识别潜在需求
-    suggestions = []
-    for project, sessions in project_groups.items():
-        if len(sessions) < 2:
-            continue  # 单个会话不生成建议
-
-        # 提取共同关键词
-        topics = [s.get('topic', '') for s in sessions]
-        keywords = set()
-        for topic in topics:
-            topic_lower = (topic or '').lower()
-            # 提取英文关键词
-            words = re.findall(r'[a-z]{3,}', topic_lower)
-            keywords.update(words)
-
-        # 常见关键词过滤（排除通用词）
-        common_words = {'the', 'for', 'and', 'this', 'that', 'with', 'from', 'to', 'is', 'are', 'was', 'were'}
-        keywords = keywords - common_words
-
-        # 根据关键词和项目名推断需求
-        if keywords:
-            # 生成建议标题
-            top_keywords = sorted(keywords, key=lambda k: sum(1 for t in topics if k in (t or '').lower()))[:3]
-            if top_keywords:
-                title = f"{project}: {top_keywords[0]}相关工作"
-
-                # 推断类别
-                category = 'other'
-                if any(k in ['fix', 'bug', 'error', 'issue', 'crash'] for k in top_keywords):
-                    category = 'bug'
-                elif any(k in ['refactor', 'clean', 'optimize', 'improve'] for k in top_keywords):
-                    category = 'refactor'
-                elif any(k in ['doc', 'readme', 'guide', 'doc'] for k in top_keywords):
-                    category = 'docs'
-                elif any(k in ['add', 'new', 'create', 'implement', 'feature'] for k in top_keywords):
-                    category = 'feature'
-
-                suggestions.append({
-                    'title': title,
-                    'category': category,
-                    'projects': [project],
-                    'sessions_count': len(sessions),
-                    'session_ids': [s.get('session_id') for s in sessions],
-                    'keywords': list(top_keywords),
-                })
-
-    # 按会话数排序
-    suggestions.sort(key=lambda x: x['sessions_count'], reverse=True)
-
-    return jsonify({
-        'total_sessions': len(main_sessions),
-        'suggestions': suggestions[:15],  # 返回前15个建议
-    })
+    from services.analysis_service import AnalysisService
+    analysis_service = AnalysisService()
+    result = analysis_service.analyze_sessions_for_requirements()
+    return jsonify(result)

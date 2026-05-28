@@ -7,10 +7,12 @@ from .requirement_service import RequirementService
 from .session_service import SessionService
 from .matching_service import MatchingService
 from .archive_service import ArchiveService
+from .analysis_service import AnalysisService
 
 __all__ = [
     'RequirementService',
     'SessionService',
     'MatchingService',
     'ArchiveService',
+    'AnalysisService',
 ]
