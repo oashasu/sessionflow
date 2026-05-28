@@ -2,19 +2,19 @@
 import re
 from typing import Dict, Any, List
 
-from core.sqlite_storage import SQLiteStorage
+from core import get_storage
 
 
 class AnalysisService:
     """会话分析业务逻辑"""
 
     def __init__(self):
-        self.sqlite_storage = SQLiteStorage()
+        self.storage = get_storage()
 
     def analyze_all(self) -> Dict[str, Any]:
         """全量分析会话，建议需求"""
         # 获取所有主会话
-        all_sessions = self.sqlite_storage.get_all_sessions()
+        all_sessions = self.storage.get_all_sessions()
         main_sessions = [s for s in all_sessions if not s.get('is_subagent')]
 
         # 按项目分组

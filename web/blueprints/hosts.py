@@ -5,11 +5,8 @@ from . import hosts_bp
 from providers import get_factory
 from providers.protocol import RemoteHost
 from core import get_storage, RemoteHostConfig
-from core.sqlite_storage import SQLiteStorage
 from web.api import ok, ok_list, fail
 from core.errors import NotFoundError, ValidationError
-
-sqlite_storage = SQLiteStorage()
 
 
 @hosts_bp.route('/api/hosts')
@@ -157,7 +154,7 @@ def api_sessions_remote_by_host(host_id):
 
     force_refresh = request.args.get('refresh', 'false') == 'true'
 
-    cached_sessions = sqlite_storage.load_sessions(host_id=host_id)
+    cached_sessions = storage.load_sessions(host_id=host_id)
 
     if cached_sessions and not force_refresh:
         result = []
@@ -223,7 +220,7 @@ def api_sessions_remote_by_host(host_id):
         except Exception:
             continue
 
-    sqlite_storage.save_sessions(all_sessions, host_id=host_id)
+    storage.save_sessions(all_sessions, host_id=host_id)
 
     return ok_list(result)
 
@@ -240,6 +237,6 @@ def api_sessions_remote_refresh(host_id):
     if not host_config.enabled:
         raise ValidationError("主机已禁用")
 
-    sqlite_storage.clear_sessions_cache(host_id=host_id)
+    storage.clear_sessions_cache(host_id=host_id)
 
     return ok(message='缓存已清除')

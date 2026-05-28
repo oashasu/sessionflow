@@ -5,12 +5,9 @@ from pathlib import Path
 from . import stats_bp
 from core.scanner import scan_sessions
 from core.parser import get_jsonl_summary
-from core import get_cached_stats, update_stats_cache
-from core.sqlite_storage import SQLiteStorage
+from core import get_cached_stats, update_stats_cache, get_storage
 from providers import get_factory
 from web.api import ok, ok_list
-
-sqlite_storage = SQLiteStorage()
 
 
 @stats_bp.route('/api/stats/<session_id>')
@@ -46,7 +43,7 @@ def api_history(session_id):
 
     limit = request.args.get('limit', 50, type=int)
 
-    cached = sqlite_storage.load_sessions()
+    cached = get_storage().load_sessions()
     session_info = next((s for s in cached if s.get('session_id') == session_id), None)
 
     log_path = None

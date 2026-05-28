@@ -2,31 +2,31 @@
 from typing import List, Optional, Dict, Any
 
 from core.scanner import scan_sessions
-from core.sqlite_storage import SQLiteStorage
+from core import get_storage
 
 
 class SessionService:
     """会话管理业务逻辑"""
 
     def __init__(self):
-        self.sqlite_storage = SQLiteStorage()
+        self.storage = get_storage()
 
     def list(self, tool_name: str = None, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """获取会话列表（支持工具筛选）"""
         if not force_refresh:
-            cached_sessions = self.sqlite_storage.load_sessions(host_id=None, tool_type=tool_name)
+            cached_sessions = self.storage.load_sessions(host_id=None, tool_type=tool_name)
             if cached_sessions:
                 return self._format_cached_sessions(cached_sessions)
 
         sessions = scan_sessions(tool_name=tool_name)
-        self.sqlite_storage.save_sessions(sessions, host_id=None)
+        self.storage.save_sessions(sessions, host_id=None)
         return self._format_sessions(sessions)
 
     def refresh(self, tool_name: str = None) -> int:
         """刷新会话缓存"""
-        self.sqlite_storage.clear_sessions_cache(host_id=None)
+        self.storage.clear_sessions_cache(host_id=None)
         sessions = scan_sessions(tool_name=tool_name)
-        self.sqlite_storage.save_sessions(sessions, host_id=None)
+        self.storage.save_sessions(sessions, host_id=None)
         return len(sessions)
 
     def get_active(self, tool_name: str = None) -> List[Dict[str, Any]]:
@@ -45,7 +45,7 @@ class SessionService:
     def get_remote(self, host_id: str, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """获取远程主机会话"""
         if not force_refresh:
-            cached = self.sqlite_storage.get_cached_remote_sessions(host_id)
+            cached = self.storage.get_cached_remote_sessions(host_id)
             if cached:
                 return cached
 
@@ -71,12 +71,12 @@ class SessionService:
         formatted = self._format_sessions(sessions)
 
         # 缓存结果
-        self.sqlite_storage.save_cached_remote_sessions(host_id, formatted)
+        self.storage.save_cached_remote_sessions(host_id, formatted)
         return formatted
 
     def refresh_remote(self, host_id: str) -> int:
         """刷新远程主机会话缓存"""
-        self.sqlite_storage.clear_remote_sessions_cache(host_id)
+        self.storage.clear_remote_sessions_cache(host_id)
         return len(self.get_remote(host_id, force_refresh=True))
 
     def _format_cached_sessions(self, cached_sessions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

@@ -3,7 +3,6 @@ import re
 from typing import List, Dict, Any
 
 from core import get_storage, RequirementSessionLink
-from core.sqlite_storage import SQLiteStorage
 
 
 class MatchingService:
@@ -11,7 +10,6 @@ class MatchingService:
 
     def __init__(self):
         self.storage = get_storage()
-        self.sqlite_storage = SQLiteStorage()
 
     def suggest_sessions(self, req_id: str) -> List[Dict[str, Any]]:
         """智能推荐匹配的会话"""
@@ -20,7 +18,7 @@ class MatchingService:
             return []
 
         # 获取所有主会话（排除子Agent）
-        all_sessions = self.sqlite_storage.get_all_sessions()
+        all_sessions = self.storage.get_all_sessions()
         main_sessions = [s for s in all_sessions if not s.get('is_subagent')]
 
         # 已关联的session不再推荐

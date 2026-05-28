@@ -487,15 +487,22 @@ class SQLiteStorage:
         return True
 
     def remove_requirement(self, req_id: str) -> bool:
-        """移除需求"""
+        """移除需求（内部使用事务）"""
+        return self.delete_requirement_with_links(req_id)
+
+    def delete_requirement_with_links(self, req_id: str) -> bool:
+        """删除需求及其关联links（事务保护）"""
         conn = self._get_conn()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM requirements WHERE id = ?", (req_id,))
-        deleted = cursor.rowcount > 0
-        # 同时删除关联链接
-        cursor.execute("DELETE FROM requirement_session_links WHERE requirement_id = ?", (req_id,))
-        conn.commit()
-        return deleted
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM requirement_session_links WHERE requirement_id = ?", (req_id,))
+            cursor.execute("DELETE FROM requirements WHERE id = ?", (req_id,))
+            deleted = cursor.rowcount > 0
+            conn.commit()
+            return deleted
+        except Exception:
+            conn.rollback()
+            raise
 
     # ========== Requirement Session Links ==========
 
