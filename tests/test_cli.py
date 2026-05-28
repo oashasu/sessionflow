@@ -110,7 +110,7 @@ class TestCLIHelpers:
 class TestCLICommands:
     """测试CLI命令"""
 
-    @patch('sessionflow.scan_sessions')
+    @patch('cli.commands.session.scan_sessions')
     def test_cmd_scan(self, mock_scan):
         """测试scan命令"""
         from argparse import Namespace
@@ -126,7 +126,7 @@ class TestCLICommands:
         result = cmd_scan(args)
         assert result is None or result == 0
 
-    @patch('sessionflow.scan_sessions')
+    @patch('cli.commands.session.scan_sessions')
     def test_cmd_list(self, mock_scan):
         """测试list命令"""
         from argparse import Namespace
@@ -142,7 +142,7 @@ class TestCLICommands:
         result = cmd_list(args)
         assert result is None or result == 0
 
-    @patch('sessionflow.scan_sessions')
+    @patch('cli.commands.session.scan_sessions')
     @patch('sessionflow.generate_recovery_cmd')
     def test_cmd_open(self, mock_cmd, mock_scan):
         """测试open命令"""
@@ -161,7 +161,7 @@ class TestCLICommands:
         result = cmd_open(args)
         assert result is None or result == 0
 
-    @patch('sessionflow.scan_sessions')
+    @patch('cli.commands.session.scan_sessions')
     def test_cmd_status(self, mock_scan):
         """测试status命令"""
         from argparse import Namespace
@@ -177,7 +177,7 @@ class TestCLICommands:
         result = cmd_status(args)
         assert result is None or result == 0
 
-    @patch('sessionflow.scan_sessions')
+    @patch('cli.commands.session.scan_sessions')
     def test_cmd_status_no_active(self, mock_scan):
         """测试status命令无活跃会话"""
         from argparse import Namespace

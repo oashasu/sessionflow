@@ -15,14 +15,14 @@ dependencies = [
 web = ["flask>=3.0.0"]
 
 [project.scripts]
-sessionflow = "sessionflow:main"
+sessionflow = "cli:main"
 
 [tool.setuptools.packages.find]
-include = ["core", "providers", "providers.*"]
+include = ["core", "providers", "providers.*", "cli", "cli.*", "services"]
 namespaces = false
 
 [tool.setuptools]
-py-modules = ["sessionflow"]
+py-modules = []
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -219,12 +219,14 @@ class TestSecurity:
         cmd = provider._build_ssh_cmd(host, ["ls", "-la"])
         assert isinstance(cmd, list)
         assert cmd[0] == "ssh"
-        # 实际格式: ['ssh', '-o', 'RemoteCommand=none', 'user@host', 'ls', '-la']
+        # 实际格式: ['ssh', '-o', 'RemoteCommand=none', '-o', 'RequestTTY=no', 'user@host', 'ls', '-la']
         assert cmd[1] == "-o"
         assert cmd[2] == "RemoteCommand=none"
-        assert cmd[3] == "testuser@192.168.1.1"
-        assert cmd[4] == "ls"
-        assert cmd[5] == "-la"
+        assert cmd[3] == "-o"
+        assert cmd[4] == "RequestTTY=no"
+        assert cmd[5] == "testuser@192.168.1.1"
+        assert cmd[6] == "ls"
+        assert cmd[7] == "-la"
 
     def test_no_shell_execution(self):
         """测试不使用shell执行"""

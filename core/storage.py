@@ -2,6 +2,7 @@
 
 import json
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Protocol, Optional, List, Dict, Any
 from dataclasses import dataclass, asdict, field
@@ -635,3 +636,21 @@ def update_stats_cache(session_id: str, stats: Dict[str, Any]) -> None:
     """更新单个会话的统计缓存"""
     storage = get_storage()
     storage.update_stats_cache(session_id, stats)
+
+
+@contextmanager
+def transaction():
+    """事务上下文管理器（便捷入口）
+
+    用法：
+        from core.storage import transaction
+
+        with transaction() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM requirements WHERE id = ?", (req_id,))
+            cursor.execute("DELETE FROM requirement_session_links WHERE requirement_id = ?", (req_id,))
+            # 自动提交或回滚
+    """
+    storage = get_storage()
+    with storage.transaction() as conn:
+        yield conn

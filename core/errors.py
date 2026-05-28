@@ -89,3 +89,43 @@ class SecurityError(SessionFlowError):
             message=message,
             suggestion="请确保路径在允许范围内",
         )
+
+
+# ========== API层错误类 ==========
+
+
+class NotFoundError(SessionFlowError):
+    """资源不存在"""
+
+    def __init__(self, resource_type: str, resource_id: str, suggestion: Optional[str] = None):
+        super().__init__(
+            message=f"{resource_type} '{resource_id}' 不存在",
+            suggestion=suggestion or f"请检查{resource_type} ID是否正确",
+        )
+        self.resource_type = resource_type
+        self.resource_id = resource_id
+
+
+class ValidationError(SessionFlowError):
+    """验证错误"""
+
+    def __init__(self, field: str, reason: str):
+        super().__init__(
+            message=f"字段 '{field}' 验证失败: {reason}",
+            suggestion="请检查输入值是否符合要求",
+        )
+        self.field = field
+        self.reason = reason
+
+
+class ConflictError(SessionFlowError):
+    """冲突错误（如重复创建）"""
+
+    def __init__(self, resource_type: str, conflict_field: str, value: str):
+        super().__init__(
+            message=f"{resource_type} 已存在（{conflict_field}={value}）",
+            suggestion="请使用不同的值或更新现有资源",
+        )
+        self.resource_type = resource_type
+        self.conflict_field = conflict_field
+        self.value = value

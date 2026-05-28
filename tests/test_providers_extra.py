@@ -84,15 +84,15 @@ class TestBuildSshCmd:
         provider = ConcreteProvider()
         host = _make_host(user="ada", hostname="10.0.0.1", ssh_alias=None)
         cmd = provider._build_ssh_cmd(host, ["ls", "-la"])
-        assert cmd == ["ssh", "-o", "RemoteCommand=none", "ada@10.0.0.1", "ls", "-la"]
+        assert cmd == ["ssh", "-o", "RemoteCommand=none", "-o", "RequestTTY=no", "ada@10.0.0.1", "ls", "-la"]
 
     def test_build_ssh_cmd_with_ssh_alias(self):
         """host有ssh_alias时优先使用alias"""
         provider = ConcreteProvider()
         host = _make_host(user="ada", hostname="10.0.0.1", ssh_alias="my-server")
         cmd = provider._build_ssh_cmd(host, ["tmux", "list-sessions"])
-        assert cmd[3] == "my-server"
-        assert "ada@" not in cmd[3]
+        assert cmd[5] == "my-server"
+        assert "ada@" not in cmd[5]
 
     def test_build_ssh_cmd_empty_remote_cmd(self):
         """remote_cmd为空列表"""

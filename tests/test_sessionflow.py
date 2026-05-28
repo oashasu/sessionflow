@@ -1622,7 +1622,7 @@ class TestCmdViewEdgeCases(unittest.TestCase):
 
         # 使用scan_all_sessions返回这个会话
         from unittest.mock import patch
-        with patch('sessionflow.scan_all_sessions', return_value=sessions):
+        with patch('cli.commands.session.scan_all_sessions', return_value=sessions):
             args = Namespace(session_id="test-no-log", select_first=True, lines=10)
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
@@ -1676,7 +1676,7 @@ class TestCmdTasksEdgeCases(unittest.TestCase):
         ]
 
         from unittest.mock import patch
-        with patch('sessionflow.scan_all_sessions', return_value=sessions):
+        with patch('cli.commands.session.scan_all_sessions', return_value=sessions):
             args = Namespace(session_id="test-no-tasks", select_first=True)
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
@@ -1746,7 +1746,7 @@ class TestCmdNoteClear(unittest.TestCase):
         ]
 
         from unittest.mock import patch
-        with patch('sessionflow.scan_all_sessions', return_value=sessions):
+        with patch('cli.commands.note.scan_all_sessions', return_value=sessions):
             args = Namespace(
                 session_id="test-clear-none",
                 select_first=True,
@@ -2170,8 +2170,8 @@ class TestCmdArchive(unittest.TestCase):
             select_first=False
         )
 
-        with patch('sessionflow.scan_all_sessions') as mock_scan:
-            with patch('sessionflow.find_session') as mock_find:
+        with patch('cli.commands.archive.scan_all_sessions') as mock_scan:
+            with patch('cli.commands.archive.find_session') as mock_find:
                 mock_scan.return_value = []
                 mock_find.return_value = mock_session
                 result = cmd_archive(args)
@@ -2202,8 +2202,8 @@ class TestCmdArchive(unittest.TestCase):
             select_first=False
         )
 
-        with patch('sessionflow.scan_all_sessions') as mock_scan:
-            with patch('sessionflow.find_session') as mock_find:
+        with patch('cli.commands.archive.scan_all_sessions') as mock_scan:
+            with patch('cli.commands.archive.find_session') as mock_find:
                 mock_scan.return_value = []
                 mock_find.return_value = mock_session
                 result = cmd_trash(args)
@@ -2309,7 +2309,7 @@ class TestCmdListWithRemote(unittest.TestCase):
 
         # Patch正确的模块路径
         with patch('providers.get_factory', return_value=mock_factory):
-            with patch('core.storage.get_storage', return_value=self.storage):
+            with patch('cli.commands.host.get_storage', return_value=self.storage):
                 old_stdout = sys.stdout
                 sys.stdout = io.StringIO()
                 try:
@@ -2411,7 +2411,7 @@ class TestCmdOpenEdgeCases(unittest.TestCase):
             host_id=None
         )
 
-        with patch('sessionflow.scan_sessions', return_value=mock_sessions):
+        with patch('cli.commands.session.scan_sessions', return_value=mock_sessions):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -2468,9 +2468,9 @@ class TestCmdOpenEdgeCases(unittest.TestCase):
         mock_factory = MagicMock()
         mock_factory.create.return_value = mock_provider
 
-        with patch('sessionflow.scan_sessions', return_value=[]):
-            with patch('sessionflow.find_session', return_value=mock_session):
-                with patch('core.storage.get_storage', return_value=mock_storage):
+        with patch('cli.commands.session.scan_sessions', return_value=[]):
+            with patch('cli.commands.session.find_session', return_value=mock_session):
+                with patch('cli.commands.session.get_storage', return_value=mock_storage):
                     with patch('providers.get_factory', return_value=mock_factory):
                         old_stdout = sys.stdout
                         sys.stdout = io.StringIO()
@@ -3141,7 +3141,7 @@ class TestCmdHostScan(unittest.TestCase):
         args = Namespace(host_cmd="scan", host_id=host.id, limit=10)
 
         with patch('providers.get_factory', return_value=mock_factory):
-            with patch('core.storage.get_storage', return_value=self.storage):
+            with patch('cli.commands.host.get_storage', return_value=self.storage):
                 old_stdout = sys.stdout
                 sys.stdout = io.StringIO()
                 try:
@@ -3191,8 +3191,8 @@ class TestCmdStatsWithMock(unittest.TestCase):
 
         args = Namespace(session_id="stats-no", select_first=True)
 
-        with patch('sessionflow.scan_all_sessions', return_value=[mock_session]):
-            with patch('sessionflow.find_session', return_value=mock_session):
+        with patch('cli.commands.session.scan_all_sessions', return_value=[mock_session]):
+            with patch('cli.commands.session.find_session', return_value=mock_session):
                 old_stdout = sys.stdout
                 sys.stdout = io.StringIO()
                 try:
@@ -3230,8 +3230,8 @@ class TestCmdStatsWithMock(unittest.TestCase):
         args = Namespace(session_id="stats-ri", select_first=True)
 
         try:
-            with patch('sessionflow.scan_all_sessions', return_value=[mock_session]):
-                with patch('sessionflow.find_session', return_value=mock_session):
+            with patch('cli.commands.session.scan_all_sessions', return_value=[mock_session]):
+                with patch('cli.commands.session.find_session', return_value=mock_session):
                     old_stdout = sys.stdout
                     sys.stdout = io.StringIO()
                     try:
@@ -3345,7 +3345,7 @@ class TestCmdStatus(unittest.TestCase):
 
         # Mock无活跃会话
         mock_sessions = []
-        with patch('sessionflow.scan_sessions', return_value=mock_sessions):
+        with patch('cli.commands.session.scan_sessions', return_value=mock_sessions):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -3371,7 +3371,7 @@ class TestCmdStatus(unittest.TestCase):
         mock_session.meta.status = "busy"
         mock_session.project_name = "active-project"
 
-        with patch('sessionflow.scan_sessions', return_value=[mock_session]):
+        with patch('cli.commands.session.scan_sessions', return_value=[mock_session]):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -3408,9 +3408,9 @@ class TestCmdTasksWithSession(unittest.TestCase):
 
         args = Namespace(session_id="tasks-log", select_first=True)
 
-        with patch('sessionflow.scan_all_sessions', return_value=[mock_session]):
-            with patch('sessionflow.find_session', return_value=mock_session):
-                with patch('sessionflow.get_session_tasks', return_value=mock_tasks):
+        with patch('cli.commands.session.scan_all_sessions', return_value=[mock_session]):
+            with patch('cli.commands.session.find_session', return_value=mock_session):
+                with patch('cli.commands.session.get_session_tasks', return_value=mock_tasks):
                     old_stdout = sys.stdout
                     sys.stdout = io.StringIO()
                     try:
@@ -3444,9 +3444,9 @@ class TestCmdViewWithLogPath(unittest.TestCase):
 
         args = Namespace(session_id="view-log", select_first=True, lines=10)
 
-        with patch('sessionflow.scan_all_sessions', return_value=[mock_session]):
-            with patch('sessionflow.find_session', return_value=mock_session):
-                with patch('sessionflow.parse_jsonl_file', return_value=mock_history):
+        with patch('cli.commands.session.scan_all_sessions', return_value=[mock_session]):
+            with patch('cli.commands.session.find_session', return_value=mock_session):
+                with patch('cli.commands.session.parse_jsonl_file', return_value=mock_history):
                     old_stdout = sys.stdout
                     sys.stdout = io.StringIO()
                     try:
@@ -3486,7 +3486,7 @@ class TestCmdListFilters(unittest.TestCase):
             verbose=False
         )
 
-        with patch('sessionflow.scan_sessions', return_value=mock_sessions):
+        with patch('cli.commands.list.scan_sessions', return_value=mock_sessions):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -3522,7 +3522,7 @@ class TestCmdListFilters(unittest.TestCase):
             verbose=False
         )
 
-        with patch('sessionflow.scan_sessions', return_value=mock_sessions):
+        with patch('cli.commands.list.scan_sessions', return_value=mock_sessions):
             old_stdout = sys.stdout
             sys.stdout = io.StringIO()
             try:
@@ -3743,8 +3743,8 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch sessionflow和core.storage中的get_storage引用
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.requirement.get_storage", return_value=self.storage), \
+             patch("cli.commands.requirement.get_storage", return_value=self.storage):
             result = cmd_req(args)
 
         loaded = self.storage.load_requirements()
@@ -3778,8 +3778,8 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch两个位置
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.requirement.get_storage", return_value=self.storage), \
+             patch("cli.commands.requirement.get_storage", return_value=self.storage):
             result = cmd_req(args)
 
         # 验证只返回active状态的需求
@@ -3805,8 +3805,8 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch两个位置
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.requirement.get_storage", return_value=self.storage), \
+             patch("cli.commands.requirement.get_storage", return_value=self.storage):
             result = cmd_req(args)
         # 验证不返回错误
         self.assertIsNone(result)
@@ -3831,8 +3831,8 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch两个位置
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.requirement.get_storage", return_value=self.storage), \
+             patch("cli.commands.requirement.get_storage", return_value=self.storage):
             result = cmd_req(args)
 
         loaded = self.storage.get_requirement(req.id)
@@ -3855,8 +3855,8 @@ class TestCmdReq(unittest.TestCase):
         )
 
         # 需要同时patch两个位置
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.requirement.get_storage", return_value=self.storage), \
+             patch("cli.commands.requirement.get_storage", return_value=self.storage):
             result = cmd_req(args)
 
         loaded = self.storage.get_requirement(req.id)
@@ -4523,8 +4523,8 @@ class TestCmdView(unittest.TestCase):
             log_path=None,
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session):
+        with patch("cli.commands.session.scan_all_sessions", return_value=[session]), \
+             patch("cli.commands.session.find_session", return_value=session):
             result = cmd_view(args)
             # 没有日志路径应该返回None（没有显式返回值）
             self.assertIsNone(result)
@@ -4571,10 +4571,9 @@ class TestCmdNote(unittest.TestCase):
             project_name="test",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.note.scan_all_sessions", return_value=[session]), \
+             patch("cli.commands.note.find_session", return_value=session), \
+             patch("cli.commands.note.get_storage", return_value=self.storage):
             result = cmd_note(args)
             self.assertIsNone(result)
 
@@ -4606,10 +4605,9 @@ class TestCmdNote(unittest.TestCase):
             project_name="test",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.note.scan_all_sessions", return_value=[session]), \
+             patch("cli.commands.note.find_session", return_value=session), \
+             patch("cli.commands.note.get_storage", return_value=self.storage):
             cmd_note(args)
 
             notes = self.storage.load_notes()
@@ -4647,8 +4645,8 @@ class TestCmdTask(unittest.TestCase):
         args.task_id = None
         args.task_id_pos = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.task.get_storage", return_value=self.storage), \
+             patch("cli.commands.task.get_storage", return_value=self.storage):
             cmd_task(args)
 
             tasks = self.storage.load_tasks()
@@ -4669,8 +4667,8 @@ class TestCmdTask(unittest.TestCase):
         args.task_id = None
         args.task_id_pos = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.task.get_storage", return_value=self.storage), \
+             patch("cli.commands.task.get_storage", return_value=self.storage):
             cmd_task(args)  # 应该打印任务列表
 
     def test_done_task(self):
@@ -4688,8 +4686,8 @@ class TestCmdTask(unittest.TestCase):
         args.field = None
         args.value = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.task.get_storage", return_value=self.storage), \
+             patch("cli.commands.task.get_storage", return_value=self.storage):
             cmd_task(args)
 
             tasks = self.storage.load_tasks()
@@ -4711,8 +4709,8 @@ class TestCmdTask(unittest.TestCase):
         args.field = None
         args.value = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.task.get_storage", return_value=self.storage), \
+             patch("cli.commands.task.get_storage", return_value=self.storage):
             cmd_task(args)
 
             tasks = self.storage.load_tasks()
@@ -4752,8 +4750,8 @@ class TestCmdProgress(unittest.TestCase):
         args.task_id = None
         args.set_progress = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.task.get_storage", return_value=self.storage), \
+             patch("cli.commands.task.get_storage", return_value=self.storage):
             cmd_progress(args)  # 应该打印进度概览
 
     def test_set_progress(self):
@@ -4766,8 +4764,8 @@ class TestCmdProgress(unittest.TestCase):
         args.task_id = None
         args.set_progress = [task.id[:8], "75"]
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.task.get_storage", return_value=self.storage), \
+             patch("cli.commands.task.get_storage", return_value=self.storage):
             cmd_progress(args)
 
             tasks = self.storage.load_tasks()
@@ -4814,10 +4812,10 @@ class TestCmdBookmark(unittest.TestCase):
             project_name="test",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.bookmark.scan_all_sessions", return_value=[session]), \
+             patch("cli.commands.bookmark.find_session", return_value=session), \
+             patch("cli.commands.bookmark.get_storage", return_value=self.storage), \
+             patch("cli.commands.bookmark.get_storage", return_value=self.storage):
             cmd_bookmark(args)
 
             bookmarks = self.storage.load_bookmarks()
@@ -4830,8 +4828,8 @@ class TestCmdBookmark(unittest.TestCase):
         args = Mock()
         args.bookmark_cmd = "list"
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.bookmark.get_storage", return_value=self.storage), \
+             patch("cli.commands.bookmark.get_storage", return_value=self.storage):
             cmd_bookmark(args)  # 应该打印书签列表
 
     def test_remove_bookmark(self):
@@ -4843,8 +4841,8 @@ class TestCmdBookmark(unittest.TestCase):
         args.bookmark_cmd = "remove"
         args.session_id = "test12345"
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.bookmark.get_storage", return_value=self.storage), \
+             patch("cli.commands.bookmark.get_storage", return_value=self.storage):
             cmd_bookmark(args)
 
             bookmarks = self.storage.load_bookmarks()
@@ -5153,10 +5151,10 @@ class TestCmdArchive(unittest.TestCase):
             topic="测试",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.archive.scan_all_sessions", return_value=[session]), \
+             patch("cli.commands.archive.find_session", return_value=session), \
+             patch("cli.commands.archive.get_storage", return_value=self.storage), \
+             patch("cli.commands.archive.get_storage", return_value=self.storage):
             cmd_archive(args)
 
             # 验证归档已保存
@@ -5200,8 +5198,8 @@ class TestCmdRestore(unittest.TestCase):
         args = Mock()
         args.session_id = session_id[:8]
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.archive.get_storage", return_value=self.storage), \
+             patch("cli.commands.archive.get_storage", return_value=self.storage):
             cmd_restore(args)
 
             # 验证会话已恢复（从归档列表移除）
@@ -5252,10 +5250,10 @@ class TestCmdTrash(unittest.TestCase):
             topic="测试",
         )
 
-        with patch("sessionflow.scan_all_sessions", return_value=[session]), \
-             patch("sessionflow.find_session", return_value=session), \
-             patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.archive.scan_all_sessions", return_value=[session]), \
+             patch("cli.commands.archive.find_session", return_value=session), \
+             patch("cli.commands.archive.get_storage", return_value=self.storage), \
+             patch("cli.commands.archive.get_storage", return_value=self.storage):
             cmd_trash(args)
 
             # 验证已移入废纸篓
@@ -5300,8 +5298,8 @@ class TestCmdReq(unittest.TestCase):
         args.status = None
         args.priority = None
 
-        with patch("sessionflow.get_storage", return_value=self.storage), \
-             patch("core.storage.get_storage", return_value=self.storage):
+        with patch("cli.commands.requirement.get_storage", return_value=self.storage), \
+             patch("cli.commands.requirement.get_storage", return_value=self.storage):
             cmd_req(args)  # 应该打印需求列表
 
 

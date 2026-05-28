@@ -11,7 +11,7 @@ setup(
     packages=find_packages(),
     entry_points={
         "console_scripts": [
-            "sessionflow=sessionflow:main",
+            "sessionflow=cli:main",
         ],
     },
     python_requires=">=3.10",

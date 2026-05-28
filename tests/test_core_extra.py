@@ -1200,7 +1200,6 @@ class TestSQLiteStatsCache:
             ("s_old", json.dumps(stats), old_time)
         )
         conn.commit()
-        conn.close()
 
         result = sqlite_storage.get_cached_stats("s_old")
         assert result is None
@@ -1240,7 +1239,6 @@ class TestSQLiteRemoteSessionsCache:
             ("host_old", json.dumps(sessions), old_time)
         )
         conn.commit()
-        conn.close()
 
         result = sqlite_storage.get_cached_remote_sessions("host_old")
         assert result is None

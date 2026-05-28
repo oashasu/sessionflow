@@ -17,6 +17,7 @@
 import json
 import sqlite3
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, asdict, field
@@ -57,6 +58,27 @@ class SQLiteStorage:
             self._conn.row_factory = sqlite3.Row
             self._conn.execute("PRAGMA journal_mode=WAL")
         return self._conn
+
+    @contextmanager
+    def transaction(self):
+        """事务上下文管理器
+
+        用法：
+            with storage.transaction() as conn:
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO ...")
+                cursor.execute("UPDATE ...")
+                # 自动提交或回滚
+
+        注意：事务内部不要调用其他storage方法（它们有自己的commit）
+        """
+        conn = self._get_conn()
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
     def close(self):
         """关闭数据库连接"""
