@@ -58,7 +58,7 @@ class TestSessionsAPI:
             mock_get_storage.return_value = mock_storage
             mock_scan.return_value = []
 
-            response = client.get('/api/sessions')
+            response = client.get('/sessions')
             assert response.status_code == 200
             data = response.get_json()
             assert isinstance(data, list)
@@ -104,7 +104,7 @@ class TestSessionsAPI:
         with patch.object(sessions, 'get_storage') as mock_get_storage:
             mock_get_storage.return_value = mock_storage
 
-            response = client.get('/api/sessions')
+            response = client.get('/sessions')
             assert response.status_code == 200
             data = response.get_json()
             assert len(data) == 1
@@ -118,7 +118,7 @@ class TestSessionsAPI:
             mock_get_storage.return_value = mock_storage
             mock_scan.return_value = []
 
-            response = client.get('/api/sessions/refresh')
+            response = client.get('/sessions/refresh')
             assert response.status_code == 200
             data = response.get_json()
             assert data['success'] == True
@@ -140,7 +140,7 @@ class TestSessionsAPI:
         with patch.object(sessions, 'scan_sessions') as mock_scan:
             mock_scan.return_value = [mock_session]
 
-            response = client.get('/api/sessions/active')
+            response = client.get('/sessions/active')
             assert response.status_code == 200
             data = response.get_json()
             assert len(data) == 1
@@ -153,7 +153,7 @@ class TestSessionsAPI:
         with patch.object(sessions, 'get_storage') as mock_get_storage:
             mock_get_storage.return_value = mock_storage
 
-            response = client.get('/api/sessions?tool=claude')
+            response = client.get('/sessions?tool=claude')
             assert response.status_code == 200
             mock_storage.load_sessions.assert_called_with(host_id=None, tool_type='claude')
 
@@ -168,7 +168,7 @@ class TestTasksAPI:
             mock_store.load_tasks.return_value = []
             mock_storage.return_value = mock_store
 
-            response = client.get('/api/tasks')
+            response = client.get('/tasks')
             assert response.status_code == 200
             data = response.get_json()
             assert isinstance(data, list)
@@ -183,7 +183,7 @@ class TestTasksAPI:
             mock_store.save_tasks = MagicMock()
             mock_storage.return_value = mock_store
 
-            response = client.post('/api/tasks/add',
+            response = client.post('/tasks/add',
                 json={'title': 'Test Task', 'priority': 'high'})
             assert response.status_code == 200
             data = response.get_json()
@@ -202,7 +202,7 @@ class TestTasksAPI:
             mock_store.save_tasks = MagicMock()
             mock_storage.return_value = mock_store
 
-            response = client.post(f'/api/tasks/toggle/{mock_task.id[:8]}')
+            response = client.post(f'/tasks/toggle/{mock_task.id[:8]}')
             assert response.status_code == 200
             data = response.get_json()
             assert data['success'] == True
@@ -219,7 +219,7 @@ class TestTasksAPI:
             mock_store.save_tasks = MagicMock()
             mock_storage.return_value = mock_store
 
-            response = client.post(f'/api/tasks/delete/{mock_task.id[:8]}')
+            response = client.post(f'/tasks/delete/{mock_task.id[:8]}')
             assert response.status_code == 200
             data = response.get_json()
             assert data['success'] == True
@@ -235,7 +235,7 @@ class TestRequirementsAPI:
             mock_store.load_requirements.return_value = []
             mock_storage.return_value = mock_store
 
-            response = client.get('/api/requirements')
+            response = client.get('/requirements')
             assert response.status_code == 200
             data = response.get_json()
             assert isinstance(data, list)
@@ -250,7 +250,7 @@ class TestRequirementsAPI:
             mock_store.add_requirement = MagicMock()
             mock_storage.return_value = mock_store
 
-            response = client.post('/api/requirements/add',
+            response = client.post('/requirements/add',
                 json={'title': 'New Feature', 'category': 'feature'})
             assert response.status_code == 200
             data = response.get_json()
@@ -267,7 +267,7 @@ class TestRequirementsAPI:
             mock_store.load_requirements.return_value = [mock_req]
             mock_storage.return_value = mock_store
 
-            response = client.post('/api/requirements/add',
+            response = client.post('/requirements/add',
                 json={'title': 'Existing Feature'})
             assert response.status_code == 200
             data = response.get_json()
@@ -287,7 +287,7 @@ class TestRequirementsAPI:
             mock_store.get_sessions_by_ids.return_value = {}
             mock_storage.return_value = mock_store
 
-            response = client.get(f'/api/requirements/{mock_req.id}')
+            response = client.get(f'/requirements/{mock_req.id}')
             assert response.status_code == 200
             data = response.get_json()
             assert data['title'] == 'Test Requirement'
@@ -299,7 +299,7 @@ class TestRequirementsAPI:
             mock_store.get_requirement.return_value = None
             mock_storage.return_value = mock_store
 
-            response = client.get('/api/requirements/nonexistent')
+            response = client.get('/requirements/nonexistent')
             assert response.status_code == 200
             data = response.get_json()
             assert data['success'] == False
@@ -315,7 +315,7 @@ class TestBookmarksAPI:
             mock_store.load_bookmarks.return_value = ['session-001', 'session-002']
             mock_storage.return_value = mock_store
 
-            response = client.get('/api/bookmarks')
+            response = client.get('/bookmarks')
             assert response.status_code == 200
             data = response.get_json()
             assert len(data) == 2
@@ -328,7 +328,7 @@ class TestBookmarksAPI:
             mock_store.save_bookmarks = MagicMock()
             mock_storage.return_value = mock_store
 
-            response = client.post('/api/bookmarks/add/session-003')
+            response = client.post('/bookmarks/add/session-003')
             assert response.status_code == 200
             data = response.get_json()
             assert data['success'] == True
@@ -341,7 +341,7 @@ class TestBookmarksAPI:
             mock_store.save_bookmarks = MagicMock()
             mock_storage.return_value = mock_store
 
-            response = client.post('/api/bookmarks/remove/session-001')
+            response = client.post('/bookmarks/remove/session-001')
             assert response.status_code == 200
             data = response.get_json()
             assert data['success'] == True
@@ -361,7 +361,7 @@ class TestNotesAPI:
             mock_store.load_notes.return_value = {'session-001': mock_note}
             mock_storage.return_value = mock_store
 
-            response = client.get('/api/notes')
+            response = client.get('/notes')
             assert response.status_code == 200
             data = response.get_json()
             assert 'session-001' in data
@@ -373,7 +373,7 @@ class TestNotesAPI:
             mock_store.save_note = MagicMock()
             mock_storage.return_value = mock_store
 
-            response = client.post('/api/notes/save',
+            response = client.post('/notes/save',
                 json={'session_id': 'session-001', 'text': 'New note'})
             assert response.status_code == 200
             data = response.get_json()
@@ -390,7 +390,7 @@ class TestHostsAPI:
             mock_store.load_hosts.return_value = []
             mock_storage.return_value = mock_store
 
-            response = client.get('/api/hosts')
+            response = client.get('/hosts')
             assert response.status_code == 200
             data = response.get_json()
             assert isinstance(data, list)
@@ -405,7 +405,7 @@ class TestHostsAPI:
             mock_store.add_host = MagicMock()
             mock_storage.return_value = mock_store
 
-            response = client.post('/api/hosts/add',
+            response = client.post('/hosts/add',
                 json={'host': 'test.example.com', 'user': 'testuser'})
             assert response.status_code == 200
             data = response.get_json()
@@ -422,7 +422,7 @@ class TestArchiveAPI:
             mock_store.load_archived_sessions.return_value = []
             mock_storage.return_value = mock_store
 
-            response = client.get('/api/archived')
+            response = client.get('/archived')
             assert response.status_code == 200
             data = response.get_json()
             assert isinstance(data, list)
@@ -452,7 +452,7 @@ class TestArchiveAPI:
             mock_storage.return_value = mock_store
             mock_scan.return_value = [mock_session]
 
-            response = client.post('/api/archive/test-session', json={})
+            response = client.post('/archive/test-session', json={})
             assert response.status_code == 200
             data = response.get_json()
             assert data['success'] == True
@@ -463,7 +463,7 @@ class TestStatsAPI:
 
     def test_tools_list(self, client):
         """测试工具列表"""
-        response = client.get('/api/tools')
+        response = client.get('/tools')
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -485,7 +485,7 @@ class TestStatsAPI:
             mock_cached.return_value = None
             mock_scan.return_value = [mock_session]
 
-            response = client.get('/api/stats/test-session')
+            response = client.get('/stats/test-session')
             assert response.status_code == 200
 
 
