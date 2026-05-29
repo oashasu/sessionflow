@@ -1,0 +1,126 @@
+/* components.css - 组件样式 */
+
+/* 树状项目列表 */
+.tree-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+.tree-item:hover { background: var(--border); }
+.tree-item.active { background: var(--primary); }
+.tree-expand { width: 18px; text-align: center; color: var(--text-muted); cursor: pointer; flex-shrink: 0; }
+.tree-expand:hover { color: var(--primary); }
+.tree-icon { flex-shrink: 0; }
+.tree-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-count { color: var(--text-muted); font-size: 12px; flex-shrink: 0; }
+.tree-children { margin-left: 18px; }
+.tree-badge-local { color: var(--success); font-size: 10px; margin-left: 4px; }
+.tree-badge-remote { color: var(--warning); font-size: 10px; margin-left: 4px; }
+
+/* 批量操作区 */
+.batch-actions { padding: 10px 15px; border-bottom: 1px solid var(--border); background: var(--bg-dark); display: flex; gap: 8px; }
+.batch-btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+.batch-btn-primary { background: var(--primary); color: white; }
+.batch-btn-secondary { background: var(--border); color: var(--text); }
+
+/* 会话列表项 */
+.session-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.session-item:hover { background: var(--bg-light); }
+.session-item.active { background: var(--border); }
+.session-topic { font-size: 12px; color: var(--text-muted); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-status { font-size: 12px; }
+.session-host { font-size: 10px; color: var(--warning); margin-top: 2px; }
+.session-tmux { font-size: 10px; color: var(--success); }
+.busy { color: var(--primary); }
+.idle { color: var(--text-muted); }
+.remote-badge { background: var(--warning); color: var(--bg-dark); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; }
+.tmux-badge { background: var(--success); color: var(--bg-dark); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; }
+
+/* 会话详情 */
+.detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.detail-header h2 { color: var(--primary); }
+
+/* 标签页导航 */
+.tabs { display: flex; margin-bottom: 20px; }
+.tab { padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); }
+.tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+
+/* 内容区域 */
+.content-area { flex: 1; overflow-y: auto; }
+.meta-info { background: var(--bg-light); padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+.meta-row { margin: 8px 0; }
+.meta-label { color: var(--text-muted); font-size: 12px; }
+.meta-value { color: var(--text); }
+
+/* 统计面板 */
+.stats { background: var(--bg-light); padding: 15px; margin-top: 20px; border-radius: 8px; }
+.stats-title { color: var(--text-muted); margin-bottom: 10px; font-size: 14px; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+.stat-item { background: var(--bg-dark); padding: 12px; border-radius: 6px; text-align: center; }
+.stat-value { font-size: 24px; color: var(--primary); }
+.stat-label { font-size: 12px; color: var(--text-muted); }
+
+/* 对话历史 */
+.history { background: var(--bg-light); padding: 15px; border-radius: 8px; margin-top: 20px; }
+.history-title { color: var(--text-muted); margin-bottom: 10px; }
+.history-item { padding: 10px; margin: 8px 0; border-radius: 6px; background: var(--bg-dark); }
+.history-user { color: var(--success); }
+.history-assistant { color: var(--primary); }
+.history-tool { color: var(--text-muted); font-size: 12px; }
+.history-content { margin-top: 5px; white-space: pre-wrap; word-break: break-word; }
+
+/* 任务管理 */
+.tasks-panel { background: var(--bg-light); padding: 15px; border-radius: 8px; margin-top: 20px; }
+.tasks-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
+.tasks-title { color: var(--text-muted); }
+.task-item { display: flex; align-items: center; padding: 10px; margin: 8px 0; background: var(--bg-dark); border-radius: 6px; }
+.task-status { width: 20px; height: 20px; border-radius: 50%; margin-right: 10px; }
+.task-todo { background: var(--text-muted); }
+.task-progress { background: var(--warning); }
+.task-done { background: var(--success); }
+.task-title { flex: 1; }
+.task-actions { margin-left: 10px; }
+.task-btn { padding: 4px 8px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; }
+
+/* 备注 */
+.notes-panel { background: var(--bg-light); padding: 15px; border-radius: 8px; margin-top: 20px; }
+.notes-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
+.notes-title { color: var(--text-muted); }
+.note-text { background: var(--bg-dark); padding: 12px; border-radius: 6px; white-space: pre-wrap; }
+
+/* 书签 */
+.bookmark-icon { cursor: pointer; font-size: 20px; }
+.bookmark-active { color: var(--primary); }
+.bookmark-inactive { color: var(--text-muted); }
+
+/* 进度条 */
+.progress-bar { height: 8px; background: var(--bg-dark); border-radius: 4px; margin-top: 10px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); }
+
+/* Host Tabs */
+.host-tabs { display: flex; gap: 10px; }
+.host-tab { padding: 6px 12px; cursor: pointer; border-radius: 4px; font-size: 12px; color: var(--text-muted); background: var(--border); }
+.host-tab.active { background: var(--primary); color: white; }
+.host-tab:hover { background: var(--bg-light); }
+
+/* 无限滚动加载指示器 */
+.scroll-loading { text-align: center; padding: 15px; color: var(--text-muted); display: none; }
+.scroll-end { text-align: center; padding: 15px; color: var(--text-secondary); font-size: 12px; }
+
+/* 需求视图组件 */
+.req-categories { width: 150px; background: var(--bg-light); border-right: 1px solid var(--border); overflow-y: auto; }
+.req-list { width: 250px; background: var(--bg-dark); border-right: 1px solid var(--border); overflow-y: auto; }
+.req-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.req-item:hover { background: var(--bg-light); }
+.req-item.active { background: var(--border); }
+.req-priority { font-size: 12px; color: var(--warning); }
+.req-status { font-size: 12px; }
+.req-detail { flex: 1; padding: 20px; overflow-y: auto; }
+.req-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+.req-title-large { font-size: 20px; color: var(--primary); }
+.req-meta { background: var(--bg-light); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+.req-timeline { background: var(--bg-light); padding: 15px; border-radius: 8px; }
+.timeline-item { padding: 10px; margin: 8px 0; background: var(--bg-dark); border-radius: 6px; display: flex; align-items: center; }
+.timeline-role { padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 10px; }
+.role-主会话 { background: var(--primary); color: white; }
+.role-辅会话 { background: var(--border); color: var(--text); }
+.role-参考会话 { background: var(--text-muted); color: var(--bg-dark); }
+.category-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.category-item:hover { background: var(--border); }
+.category-item.active { background: var(--primary); }

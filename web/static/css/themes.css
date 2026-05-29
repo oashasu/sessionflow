@@ -1,0 +1,13 @@
+/* themes.css - 颜色变量定义 */
+:root {
+    --primary: #e94560;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --bg-dark: #1a1a2e;
+    --bg-light: #16213e;
+    --bg-panel: #16213e;
+    --border: #0f3460;
+    --text: #eee;
+    --text-muted: #94a3b8;
+    --text-secondary: #64748b;
+}
