@@ -14,82 +14,92 @@ sessions_bp = Blueprint('sessions', __name__)
 @sessions_bp.route('/sessions')
 def api_sessions():
     """获取所有会话列表（支持工具筛选）- 使用SQLite缓存"""
-    tool_name = request.args.get('tool', None)  # claude/codex/all
-    force_refresh = request.args.get('refresh', 'false') == 'true'
+    try:
+        tool_name = request.args.get('tool', None)  # claude/codex/all
+        force_refresh = request.args.get('refresh', 'false') == 'true'
 
-    # 检查缓存
-    cached_sessions = get_storage().load_sessions(host_id=None, tool_type=tool_name)
+        # 检查缓存
+        cached_sessions = get_storage().load_sessions(host_id=None, tool_type=tool_name)
 
-    # 如果缓存存在且非强制刷新，直接返回
-    if cached_sessions and not force_refresh:
+        # 如果缓存存在且非强制刷新，直接返回
+        if cached_sessions and not force_refresh:
+            return jsonify([{
+                'meta': {
+                    'session_id': s['session_id'],
+                    'cwd': s['cwd'],
+                    'status': s['status'],
+                    'started_at': s['started_at'],
+                    'updated_at': s['updated_at'],
+                    'pid': s['pid'],
+                    'version': s['version'],
+                },
+                'project_name': s['project_name'],
+                'short_id': s['session_id'][:8],
+                'recovery_cmd': s['recovery_cmd'],
+                'topic': s['topic'],
+                'log_path': s['log_path'],
+                'tool_type': s.get('tool_type', 'claude'),
+                'is_subagent': s.get('is_subagent', 0),
+                'entrypoint': s.get('entrypoint'),
+                'agent_nickname': s.get('agent_nickname'),
+                'agent_role': s.get('agent_role'),
+                'model_provider': s.get('model_provider'),
+                'parent_session_id': s.get('parent_session_id'),
+                'git_branch': s.get('git_branch'),
+            } for s in cached_sessions])
+
+        # 缓存不存在或过期，扫描文件系统并更新缓存
+        sessions = scan_sessions(tool_name=tool_name)
+        get_storage().save_sessions(sessions, host_id=None)
+
         return jsonify([{
             'meta': {
-                'session_id': s['session_id'],
-                'cwd': s['cwd'],
-                'status': s['status'],
-                'started_at': s['started_at'],
-                'updated_at': s['updated_at'],
-                'pid': s['pid'],
-                'version': s['version'],
+                'session_id': s.meta.session_id,
+                'cwd': s.meta.cwd,
+                'status': s.meta.status,
+                'started_at': s.meta.started_at,
+                'updated_at': s.meta.updated_at,
             },
-            'project_name': s['project_name'],
-            'short_id': s['session_id'][:8],
-            'recovery_cmd': s['recovery_cmd'],
-            'topic': s['topic'],
-            'log_path': s['log_path'],
-            'tool_type': s.get('tool_type', 'claude'),
-            'is_subagent': s.get('is_subagent', 0),
-            'entrypoint': s.get('entrypoint'),
-            'agent_nickname': s.get('agent_nickname'),
-            'agent_role': s.get('agent_role'),
-            'model_provider': s.get('model_provider'),
-            'parent_session_id': s.get('parent_session_id'),
-            'git_branch': s.get('git_branch'),
-        } for s in cached_sessions])
-
-    # 缓存不存在或过期，扫描文件系统并更新缓存
-    sessions = scan_sessions(tool_name=tool_name)
-    get_storage().save_sessions(sessions, host_id=None)
-
-    return jsonify([{
-        'meta': {
-            'session_id': s.meta.session_id,
-            'cwd': s.meta.cwd,
-            'status': s.meta.status,
-            'started_at': s.meta.started_at,
-            'updated_at': s.meta.updated_at,
-        },
-        'project_name': s.project_name,
-        'short_id': s.short_id,
-        'recovery_cmd': s.recovery_cmd,
-        'topic': s.topic,
-        'log_path': s.log_path,
-        'tool_type': getattr(s, 'tool_type', 'claude'),
-        'is_subagent': getattr(s, 'is_subagent', False),
-        'entrypoint': getattr(s, 'entrypoint', None),
-        'agent_nickname': getattr(s, 'agent_nickname', None),
-        'agent_role': getattr(s, 'agent_role', None),
-        'model_provider': getattr(s, 'model_provider', None),
-        'parent_session_id': getattr(s, 'parent_session_id', None),
-        'git_branch': getattr(s, 'git_branch', None),
-    } for s in sessions])
+            'project_name': s.project_name,
+            'short_id': s.short_id,
+            'recovery_cmd': s.recovery_cmd,
+            'topic': s.topic,
+            'log_path': s.log_path,
+            'tool_type': getattr(s, 'tool_type', 'claude'),
+            'is_subagent': getattr(s, 'is_subagent', False),
+            'entrypoint': getattr(s, 'entrypoint', None),
+            'agent_nickname': getattr(s, 'agent_nickname', None),
+            'agent_role': getattr(s, 'agent_role', None),
+            'model_provider': getattr(s, 'model_provider', None),
+            'parent_session_id': getattr(s, 'parent_session_id', None),
+            'git_branch': getattr(s, 'git_branch', None),
+        } for s in sessions])
+    except Exception as e:
+        import logging
+        logging.exception("Sessions API error")
+        return jsonify({'error': str(e), 'success': False}), 500
 
 
 @sessions_bp.route('/sessions/refresh')
 def api_sessions_refresh():
     """手动刷新会话缓存"""
-    tool_name = request.args.get('tool', None)
+    try:
+        tool_name = request.args.get('tool', None)
 
-    # 清除缓存并重新扫描
-    get_storage().clear_sessions_cache(host_id=None)
-    sessions = scan_sessions(tool_name=tool_name)
-    get_storage().save_sessions(sessions, host_id=None)
+        # 清除缓存并重新扫描
+        get_storage().clear_sessions_cache(host_id=None)
+        sessions = scan_sessions(tool_name=tool_name)
+        get_storage().save_sessions(sessions, host_id=None)
 
-    return jsonify({
-        'success': True,
-        'count': len(sessions),
-        'message': f'已刷新{len(sessions)}个会话'
-    })
+        return jsonify({
+            'success': True,
+            'count': len(sessions),
+            'message': f'已刷新{len(sessions)}个会话'
+        })
+    except Exception as e:
+        import logging
+        logging.exception("Sessions refresh API error")
+        return jsonify({'error': str(e), 'success': False}), 500
 
 
 @sessions_bp.route('/sessions/active')
