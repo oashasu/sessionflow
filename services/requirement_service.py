@@ -78,7 +78,7 @@ class RequirementService:
 
         # 自动关联session
         for sid in session_ids:
-            link = RequirementSessionLink.create(sid, req.id, role='primary')
+            link = RequirementSessionLink.create(req.id, sid, role='primary')
             self.storage.link_session_to_requirement(link)
 
         return req
