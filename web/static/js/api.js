@@ -1,22 +1,28 @@
 // api.js - API请求函数
 
+// 统一处理API响应，兼容 {data: [...]} 和 [...] 两种格式
+function extractData(result) {
+    if (Array.isArray(result)) return result;
+    return result.data || [];
+}
+
 async function loadRemoteHosts() {
     const res = await fetch('/hosts');
     const result = await res.json();
-    remoteHosts = result.data || [];
+    remoteHosts = extractData(result);
 }
 
 async function loadArchived() {
     const res = await fetch('/archived');
     const result = await res.json();
-    archivedSessions = result.data || [];
+    archivedSessions = extractData(result);
 }
 
 async function loadRequirements() {
     try {
         const res = await fetch('/requirements');
         const result = await res.json();
-        requirements = result.data || [];
+        requirements = extractData(result);
         requirementsDetailCache = {};
         console.log('加载了', requirements.length, '个需求');
     } catch (e) {
@@ -28,7 +34,7 @@ async function loadRequirements() {
 async function loadSessions() {
     const localRes = await fetch('/sessions');
     const result = await localRes.json();
-    localSessions = result.data || [];
+    localSessions = extractData(result);
     remoteHostSessions = {};
     sessions = localSessions;
     initScrollObserver();
@@ -42,7 +48,7 @@ async function loadRemoteSessions(host_id) {
     list.innerHTML = '<div class="loading">加载远程会话...</div>';
     const res = await fetch(`/sessions/remote/${host_id}`);
     const result = await res.json();
-    const data = result.data || [];
+    const data = extractData(result);
     remoteHostSessions[host_id] = data;
     return data;
 }
@@ -50,19 +56,19 @@ async function loadRemoteSessions(host_id) {
 async function loadTasks() {
     const res = await fetch('/tasks');
     const result = await res.json();
-    allTasks = result.data || [];
+    allTasks = extractData(result);
 }
 
 async function loadBookmarks() {
     const res = await fetch('/bookmarks');
     const result = await res.json();
-    bookmarks = result.data || [];
+    bookmarks = extractData(result);
 }
 
 async function loadNotes() {
     const res = await fetch('/notes');
     const result = await res.json();
-    notes = result.data || {};
+    notes = extractData(result);
 }
 
 async function refreshData() {

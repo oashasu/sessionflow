@@ -52,9 +52,12 @@ class SQLiteStorage:
         self._init_db()
 
     def _get_conn(self) -> sqlite3.Connection:
-        """获取数据库连接（复用）"""
+        """获取数据库连接（复用）
+
+        使用check_same_thread=False支持Flask多线程环境
+        """
         if not hasattr(self, '_conn') or self._conn is None:
-            self._conn = sqlite3.connect(self.db_path, timeout=30.0)
+            self._conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
             self._conn.execute("PRAGMA journal_mode=WAL")
         return self._conn

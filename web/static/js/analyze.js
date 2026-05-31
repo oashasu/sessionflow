@@ -4,7 +4,8 @@ async function analyzeSessions() {
     mergedSuggestions = [];
     const res = await fetch('/sessions/analyze');
     const result = await res.json();
-    const analysis = result.data || {};
+    // 兼容 {suggestions: [...]} 和 {data: {suggestions: [...]}} 两种格式
+    const analysis = result.data || result;
 
     let html = `
         <div style="background: #1a1a2e; border-radius: 10px; width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
@@ -42,7 +43,8 @@ async function analyzeSessions() {
             category: sug.category,
             projects: sug.projects,
             sessions_count: sug.sessions_count,
-            keywords: sug.keywords
+            keywords: sug.keywords,
+            session_ids: sug.session_ids || []
         }).replace(/"/g, '&quot;');
 
         html += `

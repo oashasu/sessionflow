@@ -246,10 +246,47 @@ function selectProject(name) {
     renderDetail();
 }
 
+// 筛选处理
+function toggleFilter(filterType, value) {
+    filters[filterType] = value;
+
+    // 更新UI状态
+    document.querySelectorAll(`[id^="filter-${filterType}-"]`).forEach(el => {
+        el.classList.remove('active');
+    });
+    document.getElementById(`filter-${filterType}-${value}`).classList.add('active');
+
+    renderSessions();
+}
+
+// 搜索处理
+let searchDebounceTimer = null;
+function handleSessionSearch(query) {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        searchQuery = (query || '').trim().toLowerCase();
+        renderSessions();
+    }, 200);
+}
+
 function renderSessions() {
     let filtered = selectedProject
         ? sessions.filter(s => s.project_name === selectedProject)
         : sessions;
+
+    // 搜索过滤
+    if (searchQuery) {
+        filtered = filtered.filter(s => {
+            const sessionId = (s.meta.session_id || '').toLowerCase();
+            const topic = (s.topic || '').toLowerCase();
+            const project = (s.project_name || '').toLowerCase();
+            const cwd = (s.meta.cwd || '').toLowerCase();
+            return sessionId.includes(searchQuery) ||
+                   topic.includes(searchQuery) ||
+                   project.includes(searchQuery) ||
+                   cwd.includes(searchQuery);
+        });
+    }
 
     const archivedIds = new Set(archivedSessions.map(a => a.session_id));
     const trashIds = new Set(archivedSessions.filter(a => a.archive_type === 'trash').map(a => a.session_id));
@@ -405,7 +442,7 @@ async function renderOverview(content) {
     try {
         const reqRes = await fetch(`/session/requirement/${s.meta.session_id}`);
         const reqResult = await reqRes.json();
-        const reqLink = reqResult.data || {};
+        const reqLink = reqResult.data || reqResult || {};
         if (reqLink.linked) {
             reqLinkHtml = `<div class="meta-row"><div class="meta-label">所属需求</div><div class="meta-value">📋 ${reqLink.requirement_title || reqLink.requirement_id} (${reqLink.role})</div></div>`;
         }
@@ -560,7 +597,7 @@ async function renderHistory(content) {
     try {
         const res = await fetch(`/history/${selectedSession.meta.session_id}?limit=50`);
         const result = await res.json();
-        const history = result.data || [];
+        const history = Array.isArray(result) ? result : (result.data || []);
 
         if (history.length === 0) {
             content.innerHTML = '<div class="empty-state">无对话历史记录</div>';

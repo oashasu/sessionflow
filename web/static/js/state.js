@@ -22,6 +22,7 @@ let currentHostTab = 'local';
 let filters = {
     status: 'all',
     tool: 'all',
+    host: 'all',
     subagent: 'all'
 };
 
@@ -29,3 +30,4 @@ let expandedDirs = {};
 let batchSelectMode = false;
 let batchSelectedProject = null;
 let mergedSuggestions = [];
+let searchQuery = '';

@@ -1,7 +1,7 @@
 <!-- 需求视图 -->
 <div class="container" id="requirement-view">
     <!-- 左栏：需求分类 -->
-    <div class="req-categories">
+    <div class="req-categories" id="panel-req-categories">
         <h2 style="padding: 15px; font-size: 14px; color: #94a3b8; border-bottom: 1px solid #0f3460;">📁 需求分类</h2>
         <div class="category-item active" data-category="all" onclick="selectReqCategory('all')">📋 全部</div>
         <div class="category-item" data-category="feature" onclick="selectReqCategory('feature')">✨ 功能</div>
@@ -12,16 +12,23 @@
         <div style="border-top: 1px solid #0f3460; margin: 10px 15px;"></div>
         <button class="btn btn-secondary" style="margin: 10px 15px; width: calc(100% - 30px);" onclick="analyzeSessions()">🧠 AI分析建议</button>
     </div>
+    <div class="resizer" id="resizer-req-categories" data-panel="req-categories"></div>
 
     <!-- 中栏：需求列表 -->
-    <div class="req-list">
+    <div class="req-list" id="panel-req-list">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid #0f3460;">
             <h2 style="font-size: 14px; color: #94a3b8; margin: 0;">📋 需求列表</h2>
             <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="analyzeSessions()">🧠 AI分析</button>
         </div>
+        <div style="padding: 8px 15px; border-bottom: 1px solid #0f3460;">
+            <input type="text" id="req-search" placeholder="🔍 搜索需求（标题/描述）"
+                   style="width: 100%; padding: 8px 12px; background: #16213e; border: 1px solid #0f3460; color: #eee; border-radius: 6px; font-size: 13px;"
+                   oninput="handleReqSearch(this.value)">
+        </div>
         <div id="requirements-list"></div>
         <button class="btn btn-primary" style="margin: 10px 15px; width: calc(100% - 30px);" onclick="addRequirement()">+ 新建需求</button>
     </div>
+    <div class="resizer" id="resizer-req-list" data-panel="req-list"></div>
 
     <!-- 右栏：需求详情 -->
     <div class="req-detail">

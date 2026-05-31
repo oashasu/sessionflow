@@ -14,6 +14,12 @@
     <!-- 中栏：会话列表 -->
     <div class="sessions" id="panel-sessions">
         <h2>💬 会话列表</h2>
+        <!-- 搜索框 -->
+        <div style="padding: 8px 15px; border-bottom: 1px solid #0f3460;">
+            <input type="text" id="session-search" placeholder="🔍 搜索会话（项目名/主题/ID）"
+                   style="width: 100%; padding: 8px 12px; background: #16213e; border: 1px solid #0f3460; color: #eee; border-radius: 6px; font-size: 13px;"
+                   oninput="handleSessionSearch(this.value)">
+        </div>
         <!-- Host Tabs: 本地/远程切换 -->
         <div class="host-tabs" id="host-tabs-container" style="padding: 8px 15px; border-bottom: 1px solid #0f3460; display: flex; gap: 10px;">
             <div class="host-tab active" id="host-tab-local" onclick="switchHostTab('local')">💻 本地</div>

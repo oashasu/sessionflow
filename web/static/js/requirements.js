@@ -21,11 +21,34 @@ function selectReqCategory(category) {
     renderRequirements();
 }
 
+// 需求搜索
+let reqSearchQuery = '';
+let reqSearchDebounceTimer = null;
+function handleReqSearch(query) {
+    clearTimeout(reqSearchDebounceTimer);
+    reqSearchDebounceTimer = setTimeout(() => {
+        reqSearchQuery = (query || '').trim().toLowerCase();
+        renderRequirements();
+    }, 200);
+}
+
 // 渲染需求列表
 function renderRequirements() {
-    const filtered = selectedReqCategory === 'all'
+    let filtered = selectedReqCategory === 'all'
         ? requirements
         : requirements.filter(r => r.category === selectedReqCategory);
+
+    // 搜索过滤
+    if (reqSearchQuery) {
+        filtered = filtered.filter(r => {
+            const title = (r.title || '').toLowerCase();
+            const desc = (r.description || '').toLowerCase();
+            const id = (r.id || '').toLowerCase();
+            return title.includes(reqSearchQuery) ||
+                   desc.includes(reqSearchQuery) ||
+                   id.includes(reqSearchQuery);
+        });
+    }
 
     const list = document.getElementById('requirements-list');
     list.innerHTML = filtered
@@ -216,7 +239,7 @@ async function suggestSessions() {
     try {
         const res = await fetch(`/requirements/${selectedRequirement.id}/suggest`);
         const result = await res.json();
-        const suggestions = result.data || [];
+        const suggestions = Array.isArray(result) ? result : (result.data || []);
 
         if (suggestions.length === 0) {
             suggestList.innerHTML = '<div class="empty-state">未找到匹配的会话</div>';

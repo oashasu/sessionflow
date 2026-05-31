@@ -59,7 +59,7 @@ def api_requirements_add():
     # 自动关联session
     session_ids = data.get('session_ids', [])
     for sid in session_ids:
-        link = RequirementSessionLink.create(sid, req.id, role='primary')
+        link = RequirementSessionLink.create(req.id, sid, role='primary')
         storage.link_session_to_requirement(link)
 
     return jsonify({'success': True, 'req_id': req.id})
